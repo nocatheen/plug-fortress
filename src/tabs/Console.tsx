@@ -1,4 +1,4 @@
-import { Code } from "@mantine/core";
+import { Code, Title, Text } from "@mantine/core";
 import { useContext, useEffect } from "react";
 import { LogsContext } from "../contexts/LogsContext";
 
@@ -16,7 +16,11 @@ export function Console() {
   }, []);
 
   return (
-    <div className="p-5">
+    <div className="mx-10 my-5">
+      <div className="mb-10">
+        <Title>Console</Title>
+        <Text size="sm">New logs appear on top</Text>
+      </div>
       <div className="flex flex-col justify-start">
         {logs.map((log, i) => (
           <div key={i} className="mb-1">

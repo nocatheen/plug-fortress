@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { TextInput, Button, Tooltip, ActionIcon, TextInputProps } from "@mantine/core";
+import { TextInput, Button, Tooltip, ActionIcon, TextInputProps, Title, Text } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { Undo2 } from "lucide-react";
 
@@ -69,6 +69,10 @@ export function Settings() {
 
   return (
     <div className="mx-10 my-5">
+      <div className="mb-10">
+        <Title>Settings</Title>
+        <Text size="sm">You probably don't need to change these, though the "account name" is worth checking out.</Text>
+      </div>
       <PathInput
         path={settings.steam_path}
         label="Path to Steam installation directory"
@@ -91,7 +95,7 @@ export function Settings() {
         <UndoInput
           value={settings.username}
           placeholder={defaultSettings.username}
-          label="Steam account display name (not username!)"
+          label="Steam account display name"
           onUndo={() => {
             invoke("set_settings", {
               settings: {
