@@ -1,10 +1,15 @@
 pub mod settings;
 
-use settings::{SettingsManager, SettingsPatch, SettingsState};
+use crate::settings::{SettingsDisplay, SettingsManager, SettingsPatch};
 
 #[tauri::command]
-fn get_settings(manager: tauri::State<SettingsManager>) -> SettingsState {
+fn get_settings(manager: tauri::State<SettingsManager>) -> SettingsDisplay {
     manager.get()
+}
+
+#[tauri::command]
+fn get_default_settings(manager: tauri::State<SettingsManager>) -> SettingsDisplay {
+    manager.get_default()
 }
 
 #[tauri::command]
@@ -14,13 +19,9 @@ fn set_settings(manager: tauri::State<SettingsManager>, settings: SettingsPatch)
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let manager = SettingsManager::new(SettingsState {
-        game_path: "".into(),
-    });
-
     tauri::Builder::default()
-        .manage(manager)
-        .invoke_handler(tauri::generate_handler![get_settings, set_settings])
+        .manage(SettingsManager::new())
+        .invoke_handler(tauri::generate_handler![get_settings, set_settings, get_default_settings])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .run(tauri::generate_context!())

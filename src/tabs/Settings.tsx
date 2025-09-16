@@ -4,54 +4,104 @@ import { TextInput, Button } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 
 type Settings = {
+  steam_path: string;
   game_path: string;
 };
 
 export function Settings() {
-  const [dirPath, setDirPath] = useState("");
+  const [settings, setSettings] = useState<Settings>({
+    steam_path: "",
+    game_path: "",
+  });
+  const [defaultSettings, setDefaultSettings] = useState<Settings>({
+    steam_path: "",
+    game_path: "",
+  });
 
   useEffect(() => {
-    const fetchDir = async () => {
+    (async () => {
       const settings = await invoke<Settings>("get_settings");
-      setDirPath(settings.game_path);
-    };
-    fetchDir();
+      setSettings(settings);
+    })();
+
+    (async () => {
+      const defaults = await invoke<Settings>("get_default_settings");
+      setDefaultSettings(defaults);
+    })();
   }, []);
 
-  async function pickDir() {
+  async function setDirectory(type: "steam" | "game") {
     const selected = await open({
       directory: true,
       multiple: false,
     });
 
-    if (selected) {
-      invoke("set_settings", {
-        settings: {
-          game_path: selected,
-        },
-      })
-        .then(() => {
-          setDirPath(selected);
-        })
-        .catch((e) => {
-          console.error(e);
-        });
+    if (!selected) return;
+
+    let newSettings: Settings = { ...settings };
+
+    switch (type) {
+      case "steam":
+        newSettings.steam_path = selected;
+        break;
+      case "game":
+        newSettings.game_path = selected;
+        break;
+      default:
+        break;
     }
+
+    invoke("set_settings", {
+      settings: newSettings,
+    })
+      .then(() => {
+        setSettings(newSettings);
+      })
+      .catch((e) => {
+        console.error(e);
+      });
   }
 
   return (
     <div className="mx-10 my-5">
-      <div className="flex justify-center items-end w-full">
-        <TextInput
-          type="text"
-          value={dirPath}
-          readOnly
-          placeholder="C:\Program Files (x86)\Steam\steamapps\common\Team Fortress 2"
-          label="Path to Team Fortress 2 directory"
-          className="mr-5 flex-1"
-        />
-        <Button onClick={pickDir}>Open...</Button>
-      </div>
+      <PathInput
+        path={settings.steam_path}
+        label="Path to Steam installation directory"
+        placeholder={defaultSettings.steam_path}
+        onClick={() => setDirectory("steam")}
+      />
+      <PathInput
+        path={settings.game_path}
+        label="Path to Team Fortress 2 directory"
+        placeholder={defaultSettings.game_path}
+        onClick={() => setDirectory("game")}
+      />
+    </div>
+  );
+}
+
+function PathInput({
+  path,
+  label,
+  placeholder,
+  onClick,
+}: {
+  path: string;
+  label: string;
+  placeholder: string;
+  onClick: (...args: any[]) => Promise<any>;
+}) {
+  return (
+    <div className="flex justify-center items-end w-full mb-5">
+      <TextInput
+        type="text"
+        value={path}
+        readOnly
+        placeholder={placeholder}
+        label={label}
+        className="mr-5 flex-1"
+      />
+      <Button onClick={onClick}>Open...</Button>
     </div>
   );
 }

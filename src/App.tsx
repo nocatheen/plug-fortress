@@ -22,7 +22,7 @@ function generateRandomStringArray(arrayLength: number, stringLength: number): s
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState(1);
+  const [activeTab, setActiveTab] = useState(2);
 
   const renderTabContent = () => {
     switch (activeTab) {
