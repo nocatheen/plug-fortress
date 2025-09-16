@@ -2,6 +2,7 @@ import { Center, Stack, Switch, Tooltip, UnstyledButton } from "@mantine/core";
 import classes from "./NavbarMinimal.module.css";
 import { FileTerminal, Gamepad2, Settings, Skull, Swords } from "lucide-react";
 import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 interface NavbarLinkProps {
   icon: typeof Gamepad2;
@@ -53,32 +54,37 @@ export function NavbarMinimal({
 
   return (
     <nav className={classes.navbar}>
-      <Tooltip.Group openDelay={500} closeDelay={200}>
-        <Center>
-          <Tooltip
-            label={serviceEnabled ? "Stop service" : "Start service"}
-            position="right"
-            transitionProps={{ transition: "fade-right", duration: 500 }}
-            refProp="rootRef"
-            color="gray"
-          >
-            <Switch
-              size="lg"
-              onLabel="ON"
-              offLabel="OFF"
-              className="mt-5"
-              checked={serviceEnabled}
-              onChange={(event) => setServiceEnabled(event.currentTarget.checked)}
-            />
-          </Tooltip>
-        </Center>
+      <Center>
+        <Tooltip
+          label={serviceEnabled ? "Stop service" : "Start service"}
+          position="right"
+          transitionProps={{ transition: "fade-right", duration: 500 }}
+          refProp="rootRef"
+          color="gray"
+        >
+          <Switch
+            size="lg"
+            onLabel="ON"
+            offLabel="OFF"
+            className="mt-5"
+            checked={serviceEnabled}
+            onChange={(event) => {
+              if (event.currentTarget.checked) {
+                invoke("start_console");
+              } else {
+                invoke("stop_console");
+              }
+              setServiceEnabled(event.currentTarget.checked);
+            }}
+          />
+        </Tooltip>
+      </Center>
 
-        <div className={classes.navbarMain}>
-          <Stack justify="center" gap={0}>
-            {links}
-          </Stack>
-        </div>
-      </Tooltip.Group>
+      <div className={classes.navbarMain}>
+        <Stack justify="center" gap={0}>
+          {links}
+        </Stack>
+      </div>
     </nav>
   );
 }

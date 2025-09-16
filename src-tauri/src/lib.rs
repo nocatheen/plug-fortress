@@ -1,27 +1,27 @@
+pub mod console;
 pub mod settings;
+pub mod state;
 
-use crate::settings::{SettingsDisplay, SettingsManager, SettingsPatch};
+use std::sync::Mutex;
 
-#[tauri::command]
-fn get_settings(manager: tauri::State<SettingsManager>) -> SettingsDisplay {
-    manager.get()
-}
-
-#[tauri::command]
-fn get_default_settings(manager: tauri::State<SettingsManager>) -> SettingsDisplay {
-    manager.get_default()
-}
-
-#[tauri::command]
-fn set_settings(manager: tauri::State<SettingsManager>, settings: SettingsPatch) {
-    manager.set(settings);
-}
+use crate::{
+    console::{start_console, stop_console},
+    settings::{get_default_settings, get_settings, set_settings, SettingsManager},
+    state::AppState,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(SettingsManager::new())
-        .invoke_handler(tauri::generate_handler![get_settings, set_settings, get_default_settings])
+        .manage(Mutex::new(AppState::new()))
+        .invoke_handler(tauri::generate_handler![
+            get_settings,
+            set_settings,
+            get_default_settings,
+            start_console,
+            stop_console,
+        ])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .run(tauri::generate_context!())

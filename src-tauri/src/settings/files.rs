@@ -1,7 +1,5 @@
-// Firstly we need to find a Steam installation path using Windows registry.
-// Then we can find TF2 root directory as well as UserId64, convert it to
-// UserId3 and use it to find TF2's launch arguments that were set in Steam.
-
+use regex::Regex;
+use std::fs::read_to_string;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -24,6 +22,19 @@ pub fn find_game_path() -> PathBuf {
         }
     }
     PathBuf::new()
+}
+
+pub fn find_user_name() -> String {
+    let mut path = find_steam_path();
+    path.push("config/loginusers.vdf");
+    if let Ok(raw) = read_to_string(path) {
+        let re = Regex::new(r#""PersonaName"\s*"([^"]+)""#).unwrap();
+
+        if let Some(caps) = re.captures(&raw) {
+            return caps[1].to_owned();
+        }
+    }
+    String::new()
 }
 
 pub fn path_to_string(path: &Path) -> String {

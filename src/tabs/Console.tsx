@@ -1,6 +1,20 @@
 import { Code } from "@mantine/core";
+import { useContext, useEffect } from "react";
+import { LogsContext } from "../contexts/LogsContext";
 
-export function Console({ logs }: { logs: string[] }) {
+export function Console() {
+  const { logs, updateLogs } = useContext(LogsContext);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateLogs();
+    }, 200);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div className="p-5">
       <div className="flex flex-col justify-start">

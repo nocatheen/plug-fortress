@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { TextInput, Button } from "@mantine/core";
+import { TextInput, Button, Tooltip, ActionIcon, TextInputProps } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
+import { Undo2 } from "lucide-react";
 
 type Settings = {
   steam_path: string;
   game_path: string;
+  username: string;
 };
 
 export function Settings() {
   const [settings, setSettings] = useState<Settings>({
     steam_path: "",
     game_path: "",
+    username: "",
   });
   const [defaultSettings, setDefaultSettings] = useState<Settings>({
     steam_path: "",
     game_path: "",
+    username: "",
   });
 
   useEffect(() => {
@@ -26,27 +30,27 @@ export function Settings() {
 
     (async () => {
       const defaults = await invoke<Settings>("get_default_settings");
-      console.log(defaults);
       setDefaultSettings(defaults);
     })();
   }, []);
 
-  async function setDirectory(type: "steam" | "game") {
+  async function pickDirectory() {
     const selected = await open({
       directory: true,
       multiple: false,
     });
+    return selected;
+  }
 
-    if (!selected) return;
-
+  async function setDirectory(type: "steam" | "game", path: string) {
     let newSettings: Settings = { ...settings };
 
     switch (type) {
       case "steam":
-        newSettings.steam_path = selected;
+        newSettings.steam_path = path;
         break;
       case "game":
-        newSettings.game_path = selected;
+        newSettings.game_path = path;
         break;
       default:
         break;
@@ -69,14 +73,59 @@ export function Settings() {
         path={settings.steam_path}
         label="Path to Steam installation directory"
         placeholder={defaultSettings.steam_path}
-        onClick={() => setDirectory("steam")}
+        onClick={async () => setDirectory("steam", (await pickDirectory()) ?? "")}
+        onUndo={() => {
+          setDirectory("steam", defaultSettings.steam_path);
+        }}
       />
       <PathInput
         path={settings.game_path}
         label="Path to Team Fortress 2 directory"
         placeholder={defaultSettings.game_path}
-        onClick={() => setDirectory("game")}
+        onClick={async () => setDirectory("game", (await pickDirectory()) ?? "")}
+        onUndo={() => {
+          setDirectory("game", defaultSettings.game_path);
+        }}
       />
+      <div className="flex justify-center items-end w-full mb-5">
+        <UndoInput
+          value={settings.username}
+          placeholder={defaultSettings.username}
+          label="Steam account display name (not username!)"
+          onUndo={() => {
+            invoke("set_settings", {
+              settings: {
+                username: defaultSettings.username,
+              },
+            })
+              .then(() => {
+                setSettings((prev) => {
+                  return { ...prev, username: defaultSettings.username };
+                });
+              })
+              .catch((e) => {
+                console.error(e);
+              });
+          }}
+          onChange={(e) => {
+            const input = e.target as HTMLInputElement;
+            const value = input.value;
+
+            setSettings((prev) => {
+              return { ...prev, username: value };
+            });
+          }}
+          onBlur={() => {
+            invoke("set_settings", {
+              settings: {
+                username: settings.username,
+              },
+            }).catch((e) => {
+              console.error(e);
+            });
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -86,23 +135,56 @@ function PathInput({
   label,
   placeholder,
   onClick,
+  onUndo,
 }: {
   path: string;
   label: string;
   placeholder: string;
-  onClick: (...args: any[]) => Promise<any>;
+  onClick: (...args: any[]) => any;
+  onUndo: (...args: any[]) => any;
 }) {
   return (
     <div className="flex justify-center items-end w-full mb-5">
-      <TextInput
-        type="text"
-        value={path}
-        readOnly
-        placeholder={placeholder}
-        label={label}
-        className="mr-5 flex-1"
-      />
-      <Button onClick={onClick}>Open...</Button>
+      <UndoInput readOnly value={path} label={label} placeholder={placeholder} onUndo={onUndo} />
+      <Button className="ml-5" onClick={onClick}>
+        Open...
+      </Button>
     </div>
+  );
+}
+
+function UndoInput({
+  value,
+  placeholder,
+  onUndo,
+  ...rest
+}: {
+  value: string;
+  placeholder: string;
+  onUndo: (...args: any[]) => any;
+} & TextInputProps) {
+  return (
+    <TextInput
+      type="text"
+      value={value}
+      placeholder={placeholder}
+      className="flex-1"
+      rightSection={
+        value != placeholder && (
+          <Tooltip
+            label="Undo"
+            position="top"
+            transitionProps={{ transition: "fade", duration: 300 }}
+            openDelay={500}
+            color="gray"
+          >
+            <ActionIcon size={32} variant="filled" color="red" onClick={onUndo}>
+              <Undo2 size={20} />
+            </ActionIcon>
+          </Tooltip>
+        )
+      }
+      {...rest}
+    />
   );
 }

@@ -1,26 +1,29 @@
-pub mod default;
+pub mod files;
 
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, sync::Mutex};
 
-use crate::settings::default::{find_game_path, find_steam_path, path_to_string};
+use crate::settings::files::{find_game_path, find_steam_path, find_user_name, path_to_string};
 
 #[derive(Clone, Default)]
 pub struct SettingsState {
     pub steam_path: PathBuf,
     pub game_path: PathBuf,
+    pub username: String,
 }
 
 #[derive(Clone, Serialize)]
 pub struct SettingsDisplay {
     pub steam_path: String,
     pub game_path: String,
+    pub username: String,
 }
 
 #[derive(Deserialize)]
 pub struct SettingsPatch {
     pub steam_path: Option<String>,
     pub game_path: Option<String>,
+    pub username: Option<String>,
 }
 
 pub struct SettingsManager {
@@ -33,6 +36,7 @@ impl SettingsManager {
         let state = SettingsState {
             steam_path: find_steam_path(),
             game_path: find_game_path(),
+            username: find_user_name(),
         };
 
         Self {
@@ -41,11 +45,17 @@ impl SettingsManager {
         }
     }
 
-    pub fn get(&self) -> SettingsDisplay {
+    pub fn get(&self) -> SettingsState {
+        let state = self.state.lock().unwrap();
+        state.to_owned()
+    }
+
+    pub fn display(&self) -> SettingsDisplay {
         let state = self.state.lock().unwrap();
         SettingsDisplay {
             steam_path: path_to_string(&state.steam_path),
             game_path: path_to_string(&state.game_path),
+            username: state.username.clone(),
         }
     }
 
@@ -57,12 +67,31 @@ impl SettingsManager {
         if let Some(game_path) = patch.game_path {
             state.game_path = PathBuf::from(game_path);
         }
+        if let Some(username) = patch.username {
+            state.username = username;
+        }
     }
 
     pub fn get_default(&self) -> SettingsDisplay {
         SettingsDisplay {
             steam_path: path_to_string(&self.default.steam_path),
             game_path: path_to_string(&self.default.game_path),
+            username: self.default.username.clone(),
         }
     }
+}
+
+#[tauri::command]
+pub fn get_settings(manager: tauri::State<SettingsManager>) -> SettingsDisplay {
+    manager.display()
+}
+
+#[tauri::command]
+pub fn get_default_settings(manager: tauri::State<SettingsManager>) -> SettingsDisplay {
+    manager.get_default()
+}
+
+#[tauri::command]
+pub fn set_settings(manager: tauri::State<SettingsManager>, settings: SettingsPatch) {
+    manager.set(settings);
 }
