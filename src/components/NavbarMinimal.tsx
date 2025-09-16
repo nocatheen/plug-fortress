@@ -1,9 +1,10 @@
 import { Center, Stack, Switch, Tooltip, UnstyledButton } from "@mantine/core";
 import classes from "./NavbarMinimal.module.css";
-import { ChartNoAxesCombined, FileTerminal, House, Settings } from "lucide-react";
+import { FileTerminal, Gamepad2, Settings, Skull, Swords } from "lucide-react";
+import { useState } from "react";
 
 interface NavbarLinkProps {
-  icon: typeof House;
+  icon: typeof Gamepad2;
   label: string;
   active?: boolean;
   onClick?: () => void;
@@ -25,7 +26,9 @@ function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
 }
 
 const mockdata = [
-  { icon: ChartNoAxesCombined, label: "Match status" },
+  { icon: Gamepad2, label: "Game" },
+  { icon: Skull, label: "Kills" },
+  { icon: Swords, label: "Duels" },
   { icon: FileTerminal, label: "Console" },
   { icon: Settings, label: "Settings" },
 ];
@@ -46,12 +49,14 @@ export function NavbarMinimal({
     />
   ));
 
+  const [serviceEnabled, setServiceEnabled] = useState(false);
+
   return (
     <nav className={classes.navbar}>
       <Tooltip.Group openDelay={500} closeDelay={200}>
         <Center>
           <Tooltip
-            label="Start/Stop service"
+            label={serviceEnabled ? "Stop service" : "Start service"}
             position="right"
             transitionProps={{ transition: "fade-right", duration: 500 }}
             refProp="rootRef"
@@ -62,7 +67,8 @@ export function NavbarMinimal({
               onLabel="ON"
               offLabel="OFF"
               className="mt-5"
-              onChange={(event) => alert(event.currentTarget.checked)}
+              checked={serviceEnabled}
+              onChange={(event) => setServiceEnabled(event.currentTarget.checked)}
             />
           </Tooltip>
         </Center>

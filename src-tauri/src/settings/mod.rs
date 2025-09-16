@@ -31,12 +31,12 @@ pub struct SettingsManager {
 impl SettingsManager {
     pub fn new() -> Self {
         let state = SettingsState {
-            steam_path: find_steam_path().unwrap_or(PathBuf::new()),
-            game_path: find_game_path().unwrap_or(PathBuf::new()),
+            steam_path: find_steam_path(),
+            game_path: find_game_path(),
         };
 
         Self {
-            state: Mutex::new(SettingsState::default()),
+            state: Mutex::new(state.clone()),
             default: state,
         }
     }

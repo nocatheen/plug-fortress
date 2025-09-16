@@ -2,6 +2,9 @@ import { useState } from "react";
 import { NavbarMinimal } from "./components/NavbarMinimal";
 import { Settings } from "./tabs/Settings";
 import { Console } from "./tabs/Console";
+import { Game } from "./tabs/Game";
+import { Kills } from "./tabs/Kills";
+import { Duels } from "./tabs/Duels";
 
 function generateRandomString(length: number): string {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n";
@@ -22,13 +25,19 @@ function generateRandomStringArray(arrayLength: number, stringLength: number): s
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState(2);
+  const [activeTab, setActiveTab] = useState(3);
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 0:
+        return <Game />;
       case 1:
-        return <Console logs={generateRandomStringArray(100, 50)} />;
+        return <Kills />;
       case 2:
+        return <Duels />;
+      case 3:
+        return <Console logs={generateRandomStringArray(100, 50)} />;
+      case 4:
         return <Settings />;
       default:
         return null;

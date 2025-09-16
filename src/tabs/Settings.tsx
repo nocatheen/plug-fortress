@@ -26,6 +26,7 @@ export function Settings() {
 
     (async () => {
       const defaults = await invoke<Settings>("get_default_settings");
+      console.log(defaults);
       setDefaultSettings(defaults);
     })();
   }, []);
