@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "tf-gui",
-        "width": 800,
-        "height": 600
+        "title": "Plug Fortress",
+        "width": 700,
+        "height": 500
       }
     ],
     "security": {

@@ -5,6 +5,7 @@ use std::{sync::Mutex, thread};
 
 pub use event::ConsoleEvent;
 pub use parser::ConsoleParser;
+use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::{settings::SettingsManager, state::AppState};
@@ -35,41 +36,57 @@ pub fn start_console(
                     weapon,
                     crit,
                 } => {
-                    let crit_message = if crit { "crit " } else { "" };
+                    #[derive(Clone, Serialize)]
+                    struct KillPayload {
+                        killer: String,
+                        victim: String,
+                        weapon: String,
+                        crit: bool,
+                    }
                     app_handle
                         .emit(
-                            "console-log",
-                            format!(
-                                "KILL ->\n{killer} {crit_message}killed {victim} using {weapon}"
-                            ),
+                            "kill",
+                            KillPayload {
+                                killer,
+                                victim,
+                                weapon,
+                                crit,
+                            },
                         )
                         .unwrap();
                 }
                 ConsoleEvent::ChatMessage { player, message } => {
+                    #[derive(Clone, Serialize)]
+                    struct ChatMessagePayload {
+                        player: String,
+                        message: String,
+                    }
                     app_handle
-                        .emit(
-                            "console-log",
-                            format!("CHAT MESSAGE ->\n{player}: {message}"),
-                        )
+                        .emit("chat-message", ChatMessagePayload { player, message })
                         .unwrap();
                 }
                 ConsoleEvent::TeamSwap => {
-                    app_handle.emit("console-log", "TEAM SWAP").unwrap();
+                    app_handle.emit("team-swap", ()).unwrap();
                 }
                 ConsoleEvent::ServerConnect { map } => {
+                    #[derive(Clone, Serialize)]
+                    struct ServerConnectPayload {
+                        map: String,
+                    }
                     app_handle
-                        .emit("console-log", format!("SERVER CONNECT ->\nMap: {map}"))
+                        .emit("team-swap", ServerConnectPayload { map })
                         .unwrap();
                 }
                 ConsoleEvent::ServerDisconnect => {
-                    app_handle.emit("console-log", "SERVER DISCONNECT").unwrap();
+                    app_handle.emit("server-disconnect", ()).unwrap();
                 }
                 ConsoleEvent::PlayerConnect { player } => {
+                    #[derive(Clone, Serialize)]
+                    struct PlayerConnectPayload {
+                        player: String,
+                    }
                     app_handle
-                        .emit(
-                            "console-log",
-                            format!("PLAYER CONNECT ->\n{player} has joined the game"),
-                        )
+                        .emit("player-connect", PlayerConnectPayload { player })
                         .unwrap();
                 }
                 ConsoleEvent::Other { block } => {

@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: "TF2Build";
+  src: url("/src/assets/fonts/tf2build.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.tf2build {
+  font-family: "TF2Build";
+  font-variant-caps: small-caps;
+}

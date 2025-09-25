@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { TextInput, Button, Tooltip, ActionIcon, TextInputProps, Title, Text } from "@mantine/core";
+import { TextInput, Button, Tooltip, ActionIcon, TextInputProps } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { Undo2 } from "lucide-react";
 
@@ -69,19 +69,6 @@ export function Settings() {
 
   return (
     <div className="mx-10 my-5">
-      <div className="mb-10">
-        <Title>Settings</Title>
-        <Text size="sm">You probably don't need to change these, though the "account name" is worth checking out.</Text>
-      </div>
-      <PathInput
-        path={settings.steam_path}
-        label="Path to Steam installation directory"
-        placeholder={defaultSettings.steam_path}
-        onClick={async () => setDirectory("steam", (await pickDirectory()) ?? "")}
-        onUndo={() => {
-          setDirectory("steam", defaultSettings.steam_path);
-        }}
-      />
       <PathInput
         path={settings.game_path}
         label="Path to Team Fortress 2 directory"
@@ -176,7 +163,7 @@ function UndoInput({
       rightSection={
         value != placeholder && (
           <Tooltip
-            label="Undo"
+            label="Reset"
             position="top"
             transitionProps={{ transition: "fade", duration: 300 }}
             openDelay={500}

@@ -1,6 +1,6 @@
 import { Center, Stack, Switch, Tooltip, UnstyledButton } from "@mantine/core";
-import classes from "./NavbarMinimal.module.css";
-import { FileTerminal, Gamepad2, Settings, Skull, Swords } from "lucide-react";
+import classes from "./Navbar.module.css";
+import { FileTerminal, Gamepad2, Joystick, Settings } from "lucide-react";
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -28,13 +28,12 @@ function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
 
 const mockdata = [
   { icon: Gamepad2, label: "Game" },
-  { icon: Skull, label: "Kills" },
-  { icon: Swords, label: "Duels" },
-  { icon: FileTerminal, label: "Console" },
+  { icon: Joystick, label: "Toy" },
+  { icon: FileTerminal, label: "Logs" },
   { icon: Settings, label: "Settings" },
 ];
 
-export function NavbarMinimal({
+export function Navbar({
   activeTab,
   setActiveTab,
 }: {
