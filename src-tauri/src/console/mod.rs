@@ -74,7 +74,7 @@ pub fn start_console(
                         map: String,
                     }
                     app_handle
-                        .emit("team-swap", ServerConnectPayload { map })
+                        .emit("server-connect", ServerConnectPayload { map })
                         .unwrap();
                 }
                 ConsoleEvent::ServerDisconnect => {

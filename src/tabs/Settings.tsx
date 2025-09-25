@@ -4,7 +4,7 @@ import { TextInput, Button, Tooltip, ActionIcon, TextInputProps } from "@mantine
 import { invoke } from "@tauri-apps/api/core";
 import { Undo2 } from "lucide-react";
 
-type Settings = {
+export type Settings = {
   steam_path: string;
   game_path: string;
   username: string;

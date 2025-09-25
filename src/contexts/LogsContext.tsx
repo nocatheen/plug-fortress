@@ -48,6 +48,7 @@ export const LogsContext = createContext<{
 export function LogsProvider({ children }: { children?: React.ReactNode }) {
   const [logs, setLogs] = useState<TFEvent[]>([]);
   const buffer = useRef<TFEvent[]>([]);
+  const prevBuffer = useRef<TFEvent[]>([]);
 
   useEffect(() => {
     const unlistenKill = listen<KillEvent>("kill", (event) => {
@@ -107,7 +108,9 @@ export function LogsProvider({ children }: { children?: React.ReactNode }) {
   }, []);
 
   const updateLogs = () => {
-    setLogs([...buffer.current.slice().reverse()]);
+    if (buffer.current == prevBuffer.current) return;
+    prevBuffer.current = buffer.current;
+    setLogs([...buffer.current.slice()]);
   };
 
   return <LogsContext value={{ logs, updateLogs }}>{children}</LogsContext>;
