@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { TextInput, Button, Tooltip, ActionIcon, TextInputProps } from "@mantine/core";
+import {
+  TextInput,
+  Button,
+  Tooltip,
+  ActionIcon,
+  TextInputProps,
+  Blockquote,
+  Code,
+} from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
-import { Undo2 } from "lucide-react";
+import { Info, Undo2 } from "lucide-react";
 
 export type Settings = {
   steam_path: string;
@@ -69,6 +77,12 @@ export function Settings() {
 
   return (
     <div className="mx-10 my-5">
+      <div className="mb-5">
+        <Blockquote color="red" icon={<Info />} mt="xl">
+          For <b>Plug&nbsp;Fortress</b> to work, make sure to add the following to Team&nbsp;Fortress&nbsp;2{" "}
+          <i>launch options</i>:<Code block>-condebug -conclearlog +con_timestamp 1</Code>
+        </Blockquote>
+      </div>
       <PathInput
         path={settings.game_path}
         label="Path to Team Fortress 2 directory"
