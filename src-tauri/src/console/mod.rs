@@ -1,14 +1,14 @@
 mod event;
 mod parser;
 
-use std::{sync::Mutex, thread};
+use std::{sync::Mutex, thread, time::Duration};
 
 pub use event::ConsoleEvent;
 pub use parser::ConsoleParser;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::{settings::SettingsManager, state::AppState};
+use crate::{console::parser::LineType, settings::SettingsManager, state::AppState};
 
 #[tauri::command]
 pub fn start_console(
@@ -26,17 +26,39 @@ pub fn start_console(
     thread::spawn(move || {
         let state = app_handle.state::<Mutex<AppState>>();
         loop {
-            if !state.lock().unwrap().service_enabled {
-                break;
-            };
-            match ConsoleEvent::from_block(&parser.read_block()) {
+            let mut block = Vec::new();
+            loop {
+                if !state.lock().unwrap().service_enabled {
+                    return;
+                };
+                let (line, ltype) = parser.read_line();
+                match ltype {
+                    LineType::NewBlock => {
+                        if !block.is_empty() {
+                            parser.reset_line();
+                            break;
+                        }
+                        block.push(line);
+                    }
+                    LineType::Part => {
+                        block.push(line);
+                    }
+                    LineType::Empty => {
+                        if !block.is_empty() {
+                            break;
+                        }
+                        thread::sleep(Duration::from_millis(200));
+                    }
+                }
+            }
+            match ConsoleEvent::from_block(&block) {
                 ConsoleEvent::Kill {
                     killer,
                     victim,
                     weapon,
                     crit,
                 } => {
-                    #[derive(Clone, Serialize)]
+                    #[derive(Clone, Serialize, Debug)]
                     struct KillPayload {
                         killer: String,
                         victim: String,
@@ -89,9 +111,7 @@ pub fn start_console(
                         .emit("player-connect", PlayerConnectPayload { player })
                         .unwrap();
                 }
-                ConsoleEvent::Other { block } => {
-                    println!("Unknown event: {:?}", block)
-                }
+                _ => (),
             }
         }
     });

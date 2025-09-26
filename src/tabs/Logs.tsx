@@ -43,12 +43,18 @@ export function Logs() {
   return (
     <NameContext value={{ name }}>
       <div className="mx-5 my-5 pb-5">
-        <div className="flex flex-col justify-start">
-          {logs.map((log, i) => (
-            <Event key={i} event={log} />
-          ))}
-          <div ref={scrollRef}></div>
-        </div>
+        {logs.length > 0 ? (
+          <div className="flex flex-col justify-start">
+            {logs.map((log, i) => (
+              <Event key={i} event={log} />
+            ))}
+            <div ref={scrollRef}></div>
+          </div>
+        ) : (
+          <div className="text-center mt-20 text-2xl text-white/20 font-light">
+            New logs will appear here
+          </div>
+        )}
       </div>
     </NameContext>
   );
@@ -67,31 +73,41 @@ function Kill({
   const { name } = useContext(NameContext);
 
   return (
-    <div className="w-full flex justify-end my-1">
+    <div className="w-full flex justify-end my-1 overflow-hidden">
       <div
         className={[
-          "tf2build text-xl w-fit h-10 rounded-md flex items-center",
+          "tf2build text-lg w-fit h-8 rounded-md flex items-center text-nowrap",
           killer === name || victim === name ? "bg-[#f1e9cb]" : "bg-[#1f1e1b]",
         ].join(" ")}
       >
-        <div className={["mx-5", killer === name || victim === name ? "text-[#a3574a]" : "text-[#c2695a]"].join(" ")}>
+        <div
+          className={[
+            "mx-5",
+            killer === name || victim === name ? "text-[#a3574a]" : "text-[#c2695a]",
+          ].join(" ")}
+        >
           {killer}
         </div>
-        <div className="relative h-full w-16">
+        <div className="relative h-full shrink-0">
           {crit && (
-            <div className="absolute inset-0 bg-radial from-red-500/50 to-transparent to-50%" />
+            <div className="absolute top-0 bottom-0 -left-5 -right-5 bg-radial from-red-500/80 to-transparent to-50%" />
           )}
           <div
             className={[
               "relative flex items-center justify-center w-full h-full",
-              killer === name || victim === name || "sepia-100 brightness-350",
+              killer === name || victim === name ? "text-[#1f1e1b]" : "sepia-100 brightness-350",
             ].join(" ")}
           >
-            <Killicon icon={weapon} />
+            <Killicon icon={weapon} crit={crit} />
           </div>
         </div>
 
-        <div className={["mx-5", killer === name || victim === name ? "text-[#557c83]" : "text-[#608f97]"].join(" ")}>
+        <div
+          className={[
+            "mx-5",
+            killer === name || victim === name ? "text-[#557c83]" : "text-[#608f97]",
+          ].join(" ")}
+        >
           {victim}
         </div>
       </div>
