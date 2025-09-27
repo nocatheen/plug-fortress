@@ -78,6 +78,8 @@ export function Settings() {
       });
   }
 
+  const [wsError, setWsError] = useState(false);
+
   return (
     <div className="mx-10 my-5">
       <div className="mb-5">
@@ -156,22 +158,27 @@ export function Settings() {
               });
           }}
           onChange={(e) => {
-            const input = e.target as HTMLInputElement;
-            const value = input.value;
+            const filtered = e.target.value.replace(/[^0-9.:a-zA-Z]/g, "");
 
-            setSettings((prev) => {
-              return { ...prev, websocket_address: value };
-            });
+            setSettings((prev) => ({ ...prev, websocket_address: filtered }));
+            setWsError(false);
           }}
-          onBlur={() => {
-            invoke("set_settings", {
-              settings: {
-                websocket_address: settings.websocket_address,
-              },
-            }).catch((e) => {
-              console.error(e);
-            });
+          onBlur={(e) => {
+            let addr = e.target.value;
+            if (/^(localhost|(\d{1,3}\.){3}\d{1,3}):\d{1,5}$/.test(addr)) {
+              setSettings((prev) => ({ ...prev, websocket_address: addr }));
+              invoke("set_settings", {
+                settings: {
+                  websocket_address: addr,
+                },
+              }).catch((e) => {
+                console.error(e);
+              });
+            } else {
+              setWsError(true);
+            }
           }}
+          error={wsError ? "Invalid address" : undefined}
         />
       </div>
     </div>

@@ -75,6 +75,9 @@ impl SettingsManager {
         if let Some(username) = patch.username {
             state.username = username;
         }
+        if let Some(websocket_address) = patch.websocket_address {
+            state.websocket_address = websocket_address;
+        }
     }
 
     pub fn get_default(&self) -> SettingsDisplay {
