@@ -16,6 +16,7 @@ export type Settings = {
   steam_path: string;
   game_path: string;
   username: string;
+  websocket_address: string;
 };
 
 export function Settings() {
@@ -23,11 +24,13 @@ export function Settings() {
     steam_path: "",
     game_path: "",
     username: "",
+    websocket_address: "",
   });
   const [defaultSettings, setDefaultSettings] = useState<Settings>({
     steam_path: "",
     game_path: "",
     username: "",
+    websocket_address: "",
   });
 
   useEffect(() => {
@@ -79,8 +82,9 @@ export function Settings() {
     <div className="mx-10 my-5">
       <div className="mb-5">
         <Blockquote color="red" icon={<Info />} mt="xl">
-          For <b>Plug&nbsp;Fortress</b> to work, make sure to add the following to Team&nbsp;Fortress&nbsp;2{" "}
-          <i>launch options</i>:<Code block>-condebug -conclearlog +con_timestamp 1</Code>
+          For <b>Plug&nbsp;Fortress</b> to work, make sure to add the following to
+          Team&nbsp;Fortress&nbsp;2 <i>launch options</i>:
+          <Code block>-condebug -conclearlog +con_timestamp 1</Code>
         </Blockquote>
       </div>
       <PathInput
@@ -124,6 +128,45 @@ export function Settings() {
             invoke("set_settings", {
               settings: {
                 username: settings.username,
+              },
+            }).catch((e) => {
+              console.error(e);
+            });
+          }}
+        />
+      </div>
+      <div className="flex justify-center items-end w-full mb-5">
+        <UndoInput
+          value={settings.websocket_address}
+          placeholder={defaultSettings.websocket_address}
+          label="Intiface Central websocket address"
+          onUndo={() => {
+            invoke("set_settings", {
+              settings: {
+                websocket_address: defaultSettings.websocket_address,
+              },
+            })
+              .then(() => {
+                setSettings((prev) => {
+                  return { ...prev, websocket_address: defaultSettings.websocket_address };
+                });
+              })
+              .catch((e) => {
+                console.error(e);
+              });
+          }}
+          onChange={(e) => {
+            const input = e.target as HTMLInputElement;
+            const value = input.value;
+
+            setSettings((prev) => {
+              return { ...prev, websocket_address: value };
+            });
+          }}
+          onBlur={() => {
+            invoke("set_settings", {
+              settings: {
+                websocket_address: settings.websocket_address,
               },
             }).catch((e) => {
               console.error(e);

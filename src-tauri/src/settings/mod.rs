@@ -10,6 +10,7 @@ pub struct SettingsState {
     pub steam_path: PathBuf,
     pub game_path: PathBuf,
     pub username: String,
+    pub websocket_address: String,
 }
 
 #[derive(Clone, Serialize)]
@@ -17,6 +18,7 @@ pub struct SettingsDisplay {
     pub steam_path: String,
     pub game_path: String,
     pub username: String,
+    pub websocket_address: String,
 }
 
 #[derive(Deserialize)]
@@ -24,6 +26,7 @@ pub struct SettingsPatch {
     pub steam_path: Option<String>,
     pub game_path: Option<String>,
     pub username: Option<String>,
+    pub websocket_address: Option<String>,
 }
 
 pub struct SettingsManager {
@@ -37,6 +40,7 @@ impl SettingsManager {
             steam_path: find_steam_path(),
             game_path: find_game_path(),
             username: find_user_name(),
+            websocket_address: String::from("localhost:12345"),
         };
 
         Self {
@@ -56,6 +60,7 @@ impl SettingsManager {
             steam_path: path_to_string(&state.steam_path),
             game_path: path_to_string(&state.game_path),
             username: state.username.clone(),
+            websocket_address: state.websocket_address.clone(),
         }
     }
 
@@ -77,6 +82,7 @@ impl SettingsManager {
             steam_path: path_to_string(&self.default.steam_path),
             game_path: path_to_string(&self.default.game_path),
             username: self.default.username.clone(),
+            websocket_address: self.default.websocket_address.clone(),
         }
     }
 }

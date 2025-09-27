@@ -51,7 +51,7 @@ export function Logs() {
             <div ref={scrollRef}></div>
           </div>
         ) : (
-          <div className="text-center mt-20 text-2xl text-white/20 font-light">
+          <div className="text-center mt-20 text-2xl text-neutral-600">
             New logs will appear here
           </div>
         )}
