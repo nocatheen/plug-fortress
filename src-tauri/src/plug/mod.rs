@@ -1,5 +1,5 @@
 use buttplug::{
-    client::{ButtplugClient, ButtplugClientError, ButtplugClientEvent},
+    client::{ButtplugClient, ButtplugClientError, ButtplugClientEvent, ScalarValueCommand},
     core::connector::new_json_ws_client_connector,
 };
 use futures::StreamExt;
@@ -36,6 +36,7 @@ pub struct PlugState {
     pub scanning: bool,
     pub wsaddr: String,
     pub devices: Vec<Device>,
+    pub selected_device_id: i64,
 }
 
 impl PlugState {
@@ -46,6 +47,7 @@ impl PlugState {
             scanning: false,
             wsaddr: String::from("ws://localhost:12345"),
             devices: Vec::<Device>::new(),
+            selected_device_id: -1,
         }
     }
 
@@ -67,6 +69,15 @@ impl PlugState {
             }
         }
         Err(String::from(format!("Device {device_id} doesn't exist!")))
+    }
+
+    pub fn get_selected_device(&self) -> Option<&Device> {
+        for device in &self.devices {
+            if device.id as i64 == self.selected_device_id {
+                return Some(device);
+            }
+        }
+        None
     }
 
     pub fn update_devices(&mut self) {
@@ -103,6 +114,7 @@ impl PlugState {
 pub struct PlugStateClient {
     pub scanning: bool,
     pub connected: bool,
+    pub selected_device_id: i64,
 }
 
 #[tauri::command]
@@ -113,6 +125,7 @@ pub async fn get_plug_state(
     Ok(PlugStateClient {
         scanning: state.scanning,
         connected: state.client.connected(),
+        selected_device_id: state.selected_device_id,
     })
 }
 
@@ -233,5 +246,55 @@ pub async fn set_feature_max_step(
     let mut state = state.lock().await;
     let feat = state.find_feature_by_id(device_id, feature_id)?;
     feat.max_step = max_step;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn select_device(
+    state: tauri::State<'_, Mutex<PlugState>>,
+    device_id: u32,
+) -> Result<(), String> {
+    let mut state = state.lock().await;
+    for device in &state.devices {
+        if device.id == device_id {
+            state.selected_device_id = device_id as i64;
+            return Ok(());
+        }
+    }
+    Err(String::from(format!("Device {device_id} doesn't exist!")))
+}
+
+#[tauri::command]
+pub async fn test_selected(
+    state: tauri::State<'_, Mutex<PlugState>>,
+    active: bool,
+) -> Result<(), String> {
+    let state = state.lock().await;
+
+    if let Some(d) = state.get_selected_device() {
+        for device in &state.client.devices() {
+            if d.id == device.index() {
+                // I guess we only support vibration now. Aww :(
+                let mut vibrator_values = Vec::<f64>::new();
+                for feat in &d.features {
+                    vibrator_values.push(feat.max_step as f64 / feat.step_count as f64);
+                }
+                if active {
+                    device
+                        .vibrate(&ScalarValueCommand::ScalarValueVec(vibrator_values))
+                        .await
+                        .map_err(|e| e.to_string())?;
+                } else {
+                    device.stop().await.map_err(|e| e.to_string())?;
+                }
+                return Ok(());
+            }
+        }
+    }
+
+    if active {
+        return Err(String::from("No device is selected!"));
+    }
+
     Ok(())
 }

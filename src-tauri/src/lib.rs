@@ -47,11 +47,15 @@ pub fn run() {
             get_default_settings,
             start_console,
             stop_console,
+        ])
+        .invoke_handler(tauri::generate_handler![
             get_plug_state,
             start_scanning,
             stop_scanning,
             list_devices,
             set_feature_max_step,
+            select_device,
+            test_selected,
         ])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

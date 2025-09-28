@@ -8,10 +8,10 @@ import {
   TextInputProps,
   Blockquote,
   Code,
+  Skeleton,
 } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { Info, Undo2 } from "lucide-react";
-import { LoadingScreen } from "../components/LoadingScreen";
 
 export type Settings = {
   steam_path: string;
@@ -90,109 +90,122 @@ export function Settings() {
   const [wsError, setWsError] = useState(false);
 
   return (
-    <LoadingScreen visible={loading < 0}>
-      <div className="mx-10 my-10">
-        <div className="mb-5">
-          <Blockquote color="red" icon={<Info />} mt="xl">
-            For <b>Plug&nbsp;Fortress</b> to work, make sure to add the following to
-            Team&nbsp;Fortress&nbsp;2 <i>launch options</i>:
-            <Code block>-condebug -conclearlog +con_timestamp 1</Code>
-          </Blockquote>
-        </div>
-        <PathInput
-          path={settings.game_path}
-          label="Path to Team Fortress 2 directory"
-          placeholder={defaultSettings.game_path}
-          onClick={async () => setDirectory("game", (await pickDirectory()) ?? "")}
-          onUndo={() => {
-            setDirectory("game", defaultSettings.game_path);
-          }}
-        />
-        <div className="flex justify-center items-end w-full mb-5">
-          <UndoInput
-            value={settings.username}
-            placeholder={defaultSettings.username}
-            label="Steam account display name"
+    <>
+      {loading < 0 ? (
+        <>
+          <div className="absolute inset-10">
+            <Skeleton height={10} mb={6} width="40%" radius="xl" />
+            <Skeleton height={40} mb={30} radius="sm" />
+            <Skeleton height={10} mb={6} width="40%" radius="xl" />
+            <Skeleton height={40} mb={30} radius="sm" />
+            <Skeleton height={10} mb={6} width="40%" radius="xl" />
+            <Skeleton height={40} mb={6} radius="sm" />
+          </div>
+        </>
+      ) : (
+        <div className="mx-10 my-10">
+          <PathInput
+            path={settings.game_path}
+            label="Path to Team Fortress 2 directory"
+            placeholder={defaultSettings.game_path}
+            onClick={async () => setDirectory("game", (await pickDirectory()) ?? "")}
             onUndo={() => {
-              invoke("set_settings", {
-                settings: {
-                  username: defaultSettings.username,
-                },
-              })
-                .then(() => {
-                  setSettings((prev) => {
-                    return { ...prev, username: defaultSettings.username };
-                  });
-                })
-                .catch((e) => {
-                  console.error(e);
-                });
-            }}
-            onChange={(e) => {
-              const input = e.target as HTMLInputElement;
-              const value = input.value;
-
-              setSettings((prev) => {
-                return { ...prev, username: value };
-              });
-            }}
-            onBlur={() => {
-              invoke("set_settings", {
-                settings: {
-                  username: settings.username,
-                },
-              }).catch((e) => {
-                console.error(e);
-              });
+              setDirectory("game", defaultSettings.game_path);
             }}
           />
-        </div>
-        <div className="flex justify-center items-end w-full mb-5">
-          <UndoInput
-            value={settings.websocket_address}
-            placeholder={defaultSettings.websocket_address}
-            label="Intiface Central websocket address"
-            onUndo={() => {
-              invoke("set_settings", {
-                settings: {
-                  websocket_address: defaultSettings.websocket_address,
-                },
-              })
-                .then(() => {
-                  setSettings((prev) => {
-                    return { ...prev, websocket_address: defaultSettings.websocket_address };
-                  });
-                })
-                .catch((e) => {
-                  console.error(e);
-                });
-            }}
-            onChange={(e) => {
-              const filtered = e.target.value.replace(/[^0-9.:a-zA-Z]/g, "");
-
-              setSettings((prev) => ({ ...prev, websocket_address: filtered }));
-              setWsError(false);
-            }}
-            onBlur={(e) => {
-              let addr = e.target.value;
-              if (/^(localhost|(\d{1,3}\.){3}\d{1,3}):\d{1,5}$/.test(addr)) {
-                setSettings((prev) => ({ ...prev, websocket_address: addr }));
+          <div className="flex justify-center items-end w-full mb-5">
+            <UndoInput
+              value={settings.username}
+              placeholder={defaultSettings.username}
+              label="Steam account display name"
+              onUndo={() => {
                 invoke("set_settings", {
                   settings: {
-                    websocket_address: addr,
+                    username: defaultSettings.username,
+                  },
+                })
+                  .then(() => {
+                    setSettings((prev) => {
+                      return { ...prev, username: defaultSettings.username };
+                    });
+                  })
+                  .catch((e) => {
+                    console.error(e);
+                  });
+              }}
+              onChange={(e) => {
+                const input = e.target as HTMLInputElement;
+                const value = input.value;
+
+                setSettings((prev) => {
+                  return { ...prev, username: value };
+                });
+              }}
+              onBlur={() => {
+                invoke("set_settings", {
+                  settings: {
+                    username: settings.username,
                   },
                 }).catch((e) => {
                   console.error(e);
                 });
-              } else {
-                setWsError(true);
-              }
-            }}
-            error={wsError ? "Invalid address" : undefined}
-          />
+              }}
+            />
+          </div>
+          <div className="flex justify-center items-end w-full mb-5">
+            <UndoInput
+              value={settings.websocket_address}
+              placeholder={defaultSettings.websocket_address}
+              label="Intiface Central websocket address"
+              onUndo={() => {
+                invoke("set_settings", {
+                  settings: {
+                    websocket_address: defaultSettings.websocket_address,
+                  },
+                })
+                  .then(() => {
+                    setSettings((prev) => {
+                      return { ...prev, websocket_address: defaultSettings.websocket_address };
+                    });
+                  })
+                  .catch((e) => {
+                    console.error(e);
+                  });
+              }}
+              onChange={(e) => {
+                const filtered = e.target.value.replace(/[^0-9.:a-zA-Z]/g, "");
+
+                setSettings((prev) => ({ ...prev, websocket_address: filtered }));
+                setWsError(false);
+              }}
+              onBlur={(e) => {
+                let addr = e.target.value;
+                if (/^(localhost|(\d{1,3}\.){3}\d{1,3}):\d{1,5}$/.test(addr)) {
+                  setSettings((prev) => ({ ...prev, websocket_address: addr }));
+                  invoke("set_settings", {
+                    settings: {
+                      websocket_address: addr,
+                    },
+                  }).catch((e) => {
+                    console.error(e);
+                  });
+                } else {
+                  setWsError(true);
+                }
+              }}
+              error={wsError ? "Invalid address" : undefined}
+            />
+          </div>
+          <div className="mb-5">
+            <Blockquote color="red" icon={<Info />} mt="xl">
+              For <b>Plug&nbsp;Fortress</b> to work, make sure to add the following to
+              Team&nbsp;Fortress&nbsp;2 <i>launch options</i>:
+              <Code block>-condebug -conclearlog +con_timestamp 1</Code>
+            </Blockquote>
+          </div>
         </div>
-      </div>
-    </LoadingScreen>
+      )}
+    </>
   );
 }
 
