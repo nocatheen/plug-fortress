@@ -1,5 +1,6 @@
-import { Button, Slider } from "@mantine/core";
+import { Button, Slider, Tooltip } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
+import { useState } from "react";
 
 export type Feature = {
   id: number;
@@ -17,18 +18,33 @@ export function DeviceCard({
   name: string;
   features: Feature[];
 }) {
+  const [testing, setTesting] = useState(false);
+
   return (
     <div className="w-full p-5 ring-1 ring-neutral-700 rounded-lg">
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between mb-5">
         <div className="font-bold text-2xl">{name}</div>
-        <Button h={30} onClick={() => invoke("test_selected", { active: true })}>
-          Start Test (all motors)
-        </Button>
+        <Tooltip label={"Test all motors at selected power"} color="gray">
+          <Button
+            color={testing ? "red" : "blue"}
+            h={30}
+            onClick={() => {
+              if (testing) {
+                invoke("test_selected", { active: false });
+              } else {
+                invoke("test_selected", { active: true });
+              }
+              setTesting((prev) => !prev);
+            }}
+          >
+            {testing ? "Stop test" : "Start test"}
+          </Button>
+        </Tooltip>
       </div>
       <div className="mx-5 h-1 flex justify-center items-center">
         <div className="flex-1 h-0.5 bg-neutral-600 rounded-2xl"></div>
         <div className="mx-5 flex justify-center text font-bold text-neutral-500">
-          Available features
+          Set max power for every feature below
         </div>
         <div className="flex-1 h-0.5 bg-neutral-600 rounded-2xl"></div>
       </div>

@@ -137,7 +137,7 @@ export function Toy() {
                 </Tooltip>
               </div>
               <div className="flex-1 relative p-5">
-                <LoadingOverlay visible={state.scanning} zIndex={10} overlayProps={{ blur: 2 }} />
+                <LoadingOverlay visible={state.scanning} zIndex={10} overlayProps={{ blur: 5 }} />
                 {currentDevice != undefined && (
                   <DeviceCard
                     id={currentDevice.id}

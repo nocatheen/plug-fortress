@@ -4,7 +4,7 @@ use buttplug::{
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use tauri::{async_runtime::Mutex, AppHandle, Emitter};
+use tauri::{async_runtime::Mutex, AppHandle, Emitter, Manager};
 
 #[derive(Clone, Serialize)]
 pub struct Feature {
@@ -106,6 +106,18 @@ impl PlugState {
             devs.push(cdev);
         }
 
+        // Selecting the first device by default if nothing is currently selected
+        let mut flag = false;
+        for d in &devs {
+            if d.id as i64 == self.selected_device_id {
+                flag = true;
+            }
+        }
+
+        if devs.len() > 0 && !flag {
+            self.selected_device_id = devs[0].id as i64;
+        }
+
         self.devices = devs;
     }
 }
@@ -169,10 +181,13 @@ pub async fn start_scanning(
     let mut state = state.lock().await;
     let mut events = state.client.event_stream();
     tauri::async_runtime::spawn(async move {
+        let state = app_handle.state::<Mutex<PlugState>>();
         while let Some(event) = events.next().await {
             match event {
                 ButtplugClientEvent::DeviceAdded(device) => {
                     println!("Device added: {}", device.name());
+                    let mut state = state.lock().await;
+                    state.update_devices();
                     app_handle
                         .emit(
                             "device-added",

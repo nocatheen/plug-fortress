@@ -42,13 +42,14 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // settings
             get_settings,
             set_settings,
             get_default_settings,
+            // logs
             start_console,
             stop_console,
-        ])
-        .invoke_handler(tauri::generate_handler![
+            // plug
             get_plug_state,
             start_scanning,
             stop_scanning,
