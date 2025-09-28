@@ -50,7 +50,8 @@ pub fn run() {
             get_plug_state,
             start_scanning,
             stop_scanning,
-            list_devices
+            list_devices,
+            set_feature_max_step,
         ])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

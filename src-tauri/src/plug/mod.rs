@@ -1,17 +1,41 @@
 use buttplug::{
     client::{ButtplugClient, ButtplugClientError, ButtplugClientEvent},
-    core::{
-        connector::new_json_ws_client_connector, message::ClientGenericDeviceMessageAttributesV3,
-    },
+    core::connector::new_json_ws_client_connector,
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use tauri::async_runtime::Mutex;
+use tauri::{async_runtime::Mutex, AppHandle, Emitter};
+
+#[derive(Clone, Serialize)]
+pub struct Feature {
+    pub id: u32,
+    pub name: String,
+    pub step_count: u32,
+    pub max_step: u32,
+}
+
+#[derive(Clone, Serialize)]
+pub struct Device {
+    pub id: u32,
+    pub name: String,
+    pub features: Vec<Feature>,
+}
+
+impl Device {
+    pub fn new() -> Self {
+        Self {
+            id: 0,
+            name: String::new(),
+            features: Vec::<Feature>::new(),
+        }
+    }
+}
 
 pub struct PlugState {
     pub client: ButtplugClient,
     pub scanning: bool,
     pub wsaddr: String,
+    pub devices: Vec<Device>,
 }
 
 impl PlugState {
@@ -21,7 +45,57 @@ impl PlugState {
             client,
             scanning: false,
             wsaddr: String::from("ws://localhost:12345"),
+            devices: Vec::<Device>::new(),
         }
+    }
+
+    pub fn find_feature_by_id(
+        &mut self,
+        device_id: u32,
+        feature_id: u32,
+    ) -> Result<&mut Feature, String> {
+        for device in &mut self.devices {
+            if device.id == device_id {
+                for feature in &mut device.features {
+                    if feature.id == feature_id {
+                        return Ok(feature);
+                    }
+                }
+                return Err(String::from(format!(
+                    "Feature {feature_id} doesn't exist in this device!"
+                )));
+            }
+        }
+        Err(String::from(format!("Device {device_id} doesn't exist!")))
+    }
+
+    pub fn update_devices(&mut self) {
+        let mut devs = Vec::<Device>::new();
+
+        for device in self.client.devices() {
+            let mut cdev = Device {
+                id: device.index(),
+                name: device.name().to_string(),
+                features: Vec::<Feature>::new(),
+            };
+            if let Some(attrs) = device.message_attributes().scalar_cmd() {
+                for attr in attrs {
+                    let mut max_step = *attr.step_count();
+                    if let Ok(saved_feat) = self.find_feature_by_id(device.index(), *attr.index()) {
+                        max_step = saved_feat.max_step;
+                    }
+                    cdev.features.push(Feature {
+                        id: *attr.index(),
+                        name: attr.actuator_type().to_string(),
+                        step_count: *attr.step_count(),
+                        max_step,
+                    });
+                }
+            }
+            devs.push(cdev);
+        }
+
+        self.devices = devs;
     }
 }
 
@@ -64,30 +138,53 @@ async fn connect_to_server(
     state: tauri::State<'_, Mutex<PlugState>>,
     address: &str,
 ) -> Result<(), ButtplugClientError> {
-    let state = state.lock().await;
+    let mut state = state.lock().await;
 
     let connector = new_json_ws_client_connector(address);
     state.client.connect(connector).await?;
     println!("Connected to Buttplug server.");
+    state.update_devices();
 
     Ok(())
 }
 
 #[tauri::command]
-pub async fn start_scanning(state: tauri::State<'_, Mutex<PlugState>>) -> Result<(), String> {
+pub async fn start_scanning(
+    app_handle: AppHandle,
+    state: tauri::State<'_, Mutex<PlugState>>,
+) -> Result<(), String> {
     let mut state = state.lock().await;
     let mut events = state.client.event_stream();
     tauri::async_runtime::spawn(async move {
         while let Some(event) = events.next().await {
             match event {
                 ButtplugClientEvent::DeviceAdded(device) => {
-                    println!("Device {} Connected!", device.name());
+                    println!("Device added: {}", device.name());
+                    app_handle
+                        .emit(
+                            "device-added",
+                            Device {
+                                id: device.index(),
+                                name: device.name().to_owned(),
+                                features: Vec::new(),
+                            },
+                        )
+                        .unwrap();
                 }
                 ButtplugClientEvent::DeviceRemoved(info) => {
-                    println!("Device {} Removed!", info.name());
+                    println!("Device removed: {}", info.name());
+                    app_handle
+                        .emit(
+                            "device-removed",
+                            Device {
+                                id: info.index(),
+                                name: info.name().to_owned(),
+                                features: Vec::new(),
+                            },
+                        )
+                        .unwrap();
                 }
                 ButtplugClientEvent::ScanningFinished => {
-                    println!("Device scanning is finished!");
                     break;
                 }
                 _ => {}
@@ -113,29 +210,28 @@ pub async fn stop_scanning(state: tauri::State<'_, Mutex<PlugState>>) -> Result<
         .await
         .map_err(|e| e.to_string())?;
     state.scanning = false;
+    state.update_devices();
+    println!("Stopped scanning for devices.");
     Ok(())
 }
 
 #[tauri::command]
-pub async fn list_devices(state: tauri::State<'_, Mutex<PlugState>>) -> Result<(), String> {
+pub async fn list_devices(
+    state: tauri::State<'_, Mutex<PlugState>>,
+) -> Result<Vec<Device>, String> {
     let state = state.lock().await;
+    Ok(state.devices.clone())
+}
 
-    for device in state.client.devices() {
-        fn print_attrs(attrs: &Vec<ClientGenericDeviceMessageAttributesV3>) {
-            for attr in attrs {
-                println!(
-                    "{}: {} - Steps: {}",
-                    attr.actuator_type(),
-                    attr.feature_descriptor(),
-                    attr.step_count()
-                );
-            }
-        }
-        println!("{} supports these actions:", device.name());
-        if let Some(attrs) = device.message_attributes().scalar_cmd() {
-            print_attrs(attrs);
-        }
-    }
-
+#[tauri::command]
+pub async fn set_feature_max_step(
+    state: tauri::State<'_, Mutex<PlugState>>,
+    device_id: u32,
+    feature_id: u32,
+    max_step: u32,
+) -> Result<(), String> {
+    let mut state = state.lock().await;
+    let feat = state.find_feature_by_id(device_id, feature_id)?;
+    feat.max_step = max_step;
     Ok(())
 }
