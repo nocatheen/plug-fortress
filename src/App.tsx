@@ -5,7 +5,7 @@ import { Logs } from "./tabs/Logs";
 import { Game } from "./tabs/Game";
 import { Toy } from "./tabs/Toy";
 import { LogsProvider } from "./contexts/LogsContext";
-import { Blank } from "./tabs/Blank";
+import { Blank } from "./tabs/Intro";
 
 function App() {
   const [activeTab, setActiveTab] = useState(-1);

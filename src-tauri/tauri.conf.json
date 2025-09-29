@@ -14,7 +14,9 @@
       {
         "title": "Plug Fortress",
         "width": 700,
-        "height": 500
+        "height": 500,
+        "minWidth": 500,
+        "minHeight": 400
       }
     ],
     "security": {

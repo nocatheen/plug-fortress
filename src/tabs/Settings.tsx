@@ -103,7 +103,7 @@ export function Settings() {
           </div>
         </>
       ) : (
-        <div className="mx-10 my-10">
+        <div className="px-10 py-5">
           <PathInput
             path={settings.game_path}
             label="Path to Team Fortress 2 directory"
