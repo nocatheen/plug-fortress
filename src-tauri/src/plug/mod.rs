@@ -142,13 +142,35 @@ pub async fn get_plug_state(
 }
 
 pub async fn check_connection(
+    app_handle: &tauri::AppHandle,
     state: tauri::State<'_, Mutex<PlugState>>,
     address: &str,
 ) -> Result<(), String> {
     {
         let mut state = state.lock().await;
         if state.client.connected() && address == state.wsaddr {
+            app_handle
+                .emit(
+                    "status-check",
+                    PlugStateClient {
+                        scanning: state.scanning,
+                        connected: state.client.connected(),
+                        selected_device_id: state.selected_device_id,
+                    },
+                )
+                .unwrap();
             return Ok(());
+        } else if !state.client.connected() {
+            app_handle
+                .emit(
+                    "status-check",
+                    PlugStateClient {
+                        scanning: false,
+                        connected: state.client.connected(),
+                        selected_device_id: state.selected_device_id,
+                    },
+                )
+                .unwrap();
         }
         state.wsaddr = String::from(address);
     }

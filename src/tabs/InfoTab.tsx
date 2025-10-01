@@ -1,8 +1,13 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { List, Typography } from "@mantine/core";
+import { Typography } from "@mantine/core";
 import { Dot } from "lucide-react";
+import { JSX, useEffect } from "react";
 
-export function Blank() {
+export function InfoTab({ onReady }: { onReady: () => void }): JSX.Element | null {
+  useEffect(() => {
+    onReady();
+  }, []);
+
   return (
     <>
       <div className="px-10 py-5">

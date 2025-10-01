@@ -1,39 +1,51 @@
 import { useState } from "react";
 import { Navbar } from "./components/navbar/Navbar";
-import { Settings } from "./tabs/Settings";
-import { Logs } from "./tabs/Logs";
-import { Game } from "./tabs/Game";
-import { Toy } from "./tabs/Toy";
+import { SettingsTab } from "./tabs/SettingsTab";
+import { LogsTab } from "./tabs/LogsTab";
+import { FeaturesTab } from "./tabs/FeaturesTab";
+import { ToyTab } from "./tabs/ToyTab";
 import { LogsProvider } from "./contexts/LogsContext";
-import { Blank } from "./tabs/Intro";
+import { InfoTab } from "./tabs/InfoTab";
+import { Calendar, Gamepad, Info, Joystick, Settings } from "lucide-react";
 
 function App() {
-  const [activeTab, setActiveTab] = useState(-1);
+  const [loadingTab, setLoadingTab] = useState(4);
+  const [activeTab, setActiveTab] = useState(4);
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case -1:
-        return <Blank />;
-      case 0:
-        return <Game />;
-      case 1:
-        return <Toy />;
-      case 2:
-        return <Logs />;
-      case 3:
-        return <Settings />;
-      default:
-        return null;
-    }
-  };
+  const links = [
+    { icon: Gamepad, label: "Features" },
+    { icon: Joystick, label: "Toy" },
+    { icon: Calendar, label: "Events" },
+    { icon: Settings, label: "Settings" },
+    { icon: Info, label: "About" },
+  ];
+
+  const tabs: (typeof FeaturesTab)[] = [FeaturesTab, ToyTab, LogsTab, SettingsTab, InfoTab];
 
   return (
     <>
       <div className="fixed z-10">
-        <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Navbar
+          activeTab={activeTab}
+          setActiveTab={setLoadingTab}
+          data={links}
+          loadingTab={loadingTab}
+        />
       </div>
       <LogsProvider>
-        <div className="absolute left-[75px] right-0 top-0 h-dvh">{renderTabContent()}</div>
+        <div className="absolute left-[75px] right-0 top-0 h-dvh">
+          {tabs.map((Tab, i) => (
+            <div key={i}>
+              {(loadingTab === i || activeTab === i) && (
+                <Tab
+                  onReady={() => {
+                    setActiveTab(i);
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
       </LogsProvider>
     </>
   );

@@ -29,8 +29,12 @@ pub fn run() {
                 let settings = app_handle.state::<SettingsManager>();
                 loop {
                     let ws_path = settings.get().websocket_address;
-                    if let Err(e) =
-                        check_connection(plug_state.clone(), &format!("ws://{}", ws_path)).await
+                    if let Err(e) = check_connection(
+                        &app_handle,
+                        plug_state.clone(),
+                        &format!("ws://{}", ws_path),
+                    )
+                    .await
                     {
                         eprintln!("{e:?}");
                     } else {

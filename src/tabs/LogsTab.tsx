@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useTransition } from "react";
 import {
   ChatMessageEvent,
   KillEvent,
@@ -11,7 +11,7 @@ import { Killicon } from "../components/Killicon";
 import { Earth, MessageSquare, Shuffle, Unplug, UserRoundPlus } from "lucide-react";
 import { useScrollToBottom } from "../hooks/useScrollToBottom";
 import { invoke } from "@tauri-apps/api/core";
-import { Settings } from "./Settings";
+import { Settings } from "./SettingsTab";
 
 const NameContext = createContext<{
   name: string;
@@ -19,17 +19,21 @@ const NameContext = createContext<{
   name: "",
 });
 
-export function Logs() {
+export function LogsTab({ onReady }: { onReady: () => void }) {
+  const [isPending, startTransition] = useTransition();
+
   const { logs, updateLogs } = useContext(LogsContext);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   useScrollToBottom(scrollRef.current, logs);
   const [name, setName] = useState("");
 
   useEffect(() => {
-    (async () => {
+    startTransition(async () => {
       const settings = await invoke<Settings>("get_settings");
       setName(settings.username);
-    })();
+
+      onReady();
+    });
 
     const interval = setInterval(() => {
       updateLogs();
@@ -40,6 +44,7 @@ export function Logs() {
     };
   }, []);
 
+  if (isPending) return null;
   return (
     <NameContext value={{ name }}>
       <div className="mx-5 my-5 pb-5">

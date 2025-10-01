@@ -1,17 +1,16 @@
-import { Center, Stack, Switch, Tooltip, UnstyledButton } from "@mantine/core";
+import { Center, Stack, Tooltip, UnstyledButton } from "@mantine/core";
 import classes from "./Navbar.module.css";
-import { FileTerminal, Gamepad2, Joystick, Settings } from "lucide-react";
-import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { type AArrowDown } from "lucide-react";
 
 interface NavbarLinkProps {
-  icon: typeof Gamepad2;
+  icon: typeof AArrowDown;
   label: string;
   active?: boolean;
+  loading: boolean;
   onClick?: () => void;
 }
 
-function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
+function NavbarLink({ icon: Icon, label, active, loading, onClick }: NavbarLinkProps) {
   return (
     <Tooltip
       label={label}
@@ -20,64 +19,41 @@ function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
       color="gray"
     >
       <UnstyledButton onClick={onClick} className={classes.link} data-active={active || undefined}>
-        <Icon size={20} />
+        <Icon className={loading ? "animate-bounce mt-[10px] opacity-50" : undefined} size={20} />
       </UnstyledButton>
     </Tooltip>
   );
 }
 
-const mockdata = [
-  { icon: Gamepad2, label: "Game" },
-  { icon: Joystick, label: "Toy" },
-  { icon: FileTerminal, label: "Logs" },
-  { icon: Settings, label: "Settings" },
-];
+type Link = {
+  icon: typeof AArrowDown;
+  label: string;
+};
 
 export function Navbar({
+  data,
   activeTab,
+  loadingTab,
   setActiveTab,
 }: {
+  data: Link[];
   activeTab: number;
-  setActiveTab: React.Dispatch<React.SetStateAction<number>>;
+  loadingTab: number;
+  setActiveTab: (tab: number) => void;
 }) {
-  const links = mockdata.map((link, index) => (
+  const links = data.map((link, i) => (
     <NavbarLink
       {...link}
+      loading={i === loadingTab && activeTab !== loadingTab}
       key={link.label}
-      active={index === activeTab}
-      onClick={() => setActiveTab(index)}
+      active={i === activeTab}
+      onClick={() => setActiveTab(i)}
     />
   ));
 
-  const [serviceEnabled, setServiceEnabled] = useState(false);
-
   return (
     <nav className={classes.navbar}>
-      <Center>
-        <Tooltip
-          label={serviceEnabled ? "Stop service" : "Start service"}
-          position="right"
-          transitionProps={{ transition: "fade-right", duration: 500 }}
-          refProp="rootRef"
-          color="gray"
-        >
-          <Switch
-            size="lg"
-            onLabel="ON"
-            offLabel="OFF"
-            className="mt-5"
-            checked={serviceEnabled}
-            onChange={(event) => {
-              if (event.currentTarget.checked) {
-                invoke("start_console");
-              } else {
-                invoke("stop_console");
-              }
-              setServiceEnabled(event.currentTarget.checked);
-            }}
-          />
-        </Tooltip>
-      </Center>
+      <Center></Center>
 
       <div className={classes.navbarMain}>
         <Stack justify="center" gap={0}>
