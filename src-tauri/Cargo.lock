@@ -3505,6 +3505,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "plug-fortress"
+version = "0.1.0"
+dependencies = [
+ "buttplug",
+ "futures",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "steamlocate",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tokio",
+]
+
+[[package]]
 name = "png"
 version = "0.17.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5149,24 +5167,6 @@ dependencies = [
  "futf",
  "mac",
  "utf-8",
-]
-
-[[package]]
-name = "tf-gui"
-version = "0.1.0"
-dependencies = [
- "buttplug",
- "futures",
- "regex",
- "serde",
- "serde_json",
- "sha2",
- "steamlocate",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tokio",
 ]
 
 [[package]]
