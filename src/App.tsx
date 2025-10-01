@@ -9,8 +9,8 @@ import { InfoTab } from "./tabs/InfoTab";
 import { Calendar, Gamepad, Info, Joystick, Settings } from "lucide-react";
 
 function App() {
-  const [loadingTab, setLoadingTab] = useState(4);
-  const [activeTab, setActiveTab] = useState(4);
+  const [loadingTab, setLoadingTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(0);
 
   const links = [
     { icon: Gamepad, label: "Features" },

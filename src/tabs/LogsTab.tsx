@@ -11,7 +11,7 @@ import { Killicon } from "../components/Killicon";
 import { Earth, MessageSquare, Shuffle, Unplug, UserRoundPlus } from "lucide-react";
 import { useScrollToBottom } from "../hooks/useScrollToBottom";
 import { invoke } from "@tauri-apps/api/core";
-import { Settings } from "./SettingsTab";
+import { GameState } from "./SettingsTab";
 
 const NameContext = createContext<{
   name: string;
@@ -29,8 +29,8 @@ export function LogsTab({ onReady }: { onReady: () => void }) {
 
   useEffect(() => {
     startTransition(async () => {
-      const settings = await invoke<Settings>("get_settings");
-      setName(settings.username);
+      const gameState = await invoke<GameState>("get_game_state");
+      setName(gameState.username);
 
       onReady();
     });

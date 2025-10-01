@@ -28,4 +28,5 @@ regex = "1.11.2"
 buttplug = "9.0.9"
 futures = "0.3.31"
 tokio = "1.47.1"
+sha2 = "0.10.9"
 

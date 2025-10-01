@@ -1,34 +1,46 @@
 mod event;
 mod parser;
 
-use std::{sync::Mutex, thread, time::Duration};
+use std::{thread, time::Duration};
 
 pub use event::ConsoleEvent;
 pub use parser::ConsoleParser;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::{console::parser::LineType, settings::SettingsManager, state::AppState};
+use crate::{console::parser::LineType, state::app::AppState};
 
-#[tauri::command]
-pub fn start_console(
-    app_handle: AppHandle,
-    settings: tauri::State<'_, SettingsManager>,
-) -> tauri::Result<()> {
-    let settings = settings.get();
-    let mut path = settings.game_path;
-    path.push("tf/console.log");
-    let mut parser = ConsoleParser::new(path.to_str().unwrap());
+pub struct ParserManager {
+    enabled: bool,
+}
 
-    let state = app_handle.state::<Mutex<AppState>>();
-    state.lock().unwrap().service_enabled = true;
+impl ParserManager {
+    pub fn new() -> Self {
+        Self { enabled: false }
+    }
 
-    thread::spawn(move || {
-        let state = app_handle.state::<Mutex<AppState>>();
-        loop {
+    pub async fn stop(&mut self) {
+        self.enabled = false;
+    }
+
+    pub async fn start(&mut self, app_handle: AppHandle) {
+        let mut path = app_handle
+            .state::<AppState>()
+            .game
+            .lock()
+            .await
+            .game_path
+            .clone();
+        path.push("tf/console.log");
+        let mut parser = ConsoleParser::new(path.to_str().unwrap());
+
+        self.enabled = true;
+
+        thread::spawn(async move || loop {
+            let state = &app_handle.state::<AppState>().parser;
             let mut block = Vec::new();
             loop {
-                if !state.lock().unwrap().service_enabled {
+                if !state.lock().await.enabled {
                     return;
                 };
                 let (line, ltype) = parser.read_line();
@@ -113,13 +125,6 @@ pub fn start_console(
                 }
                 _ => (),
             }
-        }
-    });
-
-    Ok(())
-}
-
-#[tauri::command]
-pub fn stop_console(state: tauri::State<'_, Mutex<AppState>>) {
-    state.lock().unwrap().service_enabled = false;
+        });
+    }
 }

@@ -1,35 +1,37 @@
 import { useEffect, useState, useTransition } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import {
-  TextInput,
-  Button,
-  Tooltip,
-  ActionIcon,
-  TextInputProps,
-  Blockquote,
-  Code,
-} from "@mantine/core";
+import { TextInput, Button, Blockquote, Code } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
-import { Info, Undo2 } from "lucide-react";
+import { Info } from "lucide-react";
 
-export type Settings = {
-  steam_path: string;
+export type GameState = {
   game_path: string;
   username: string;
+  service_enabled: boolean;
+};
+export type PlugState = {
   websocket_address: string;
+  devices: Device[];
+  scanning: boolean;
+  connected: boolean;
+};
+export type Device = {
+  id: number[];
+  name: string;
+  enabled: boolean;
+  features: Feature[];
+};
+export type Feature = {
+  id: number[];
+  name: string;
+  step_count: boolean;
+  max_step: number;
 };
 
 export function SettingsTab({ onReady }: { onReady: () => void }) {
   const [isPending, startTransition] = useTransition();
 
-  const [settings, setSettings] = useState<Settings>({
-    steam_path: "",
-    game_path: "",
-    username: "",
-    websocket_address: "",
-  });
-  const [defaultSettings, setDefaultSettings] = useState<Settings>({
-    steam_path: "",
+  const [settings, setSettings] = useState({
     game_path: "",
     username: "",
     websocket_address: "",
@@ -37,11 +39,13 @@ export function SettingsTab({ onReady }: { onReady: () => void }) {
 
   useEffect(() => {
     startTransition(async () => {
-      const settings = await invoke<Settings>("get_settings");
-      setSettings(settings);
-
-      const defaults = await invoke<Settings>("get_default_settings");
-      setDefaultSettings(defaults);
+      const gameState = await invoke<GameState>("get_game_state");
+      const plugState = await invoke<PlugState>("get_plug_state");
+      setSettings({
+        game_path: gameState.game_path,
+        username: gameState.username,
+        websocket_address: plugState.websocket_address,
+      });
 
       onReady();
     });
@@ -55,25 +59,17 @@ export function SettingsTab({ onReady }: { onReady: () => void }) {
     return selected;
   }
 
-  async function setDirectory(type: "steam" | "game", path: string) {
-    let newSettings: Settings = { ...settings };
-
-    switch (type) {
-      case "steam":
-        newSettings.steam_path = path;
-        break;
-      case "game":
-        newSettings.game_path = path;
-        break;
-      default:
-        break;
-    }
-
-    invoke("set_settings", {
-      settings: newSettings,
+  async function setDirectory(path: string) {
+    invoke("set_game_path", {
+      gamePath: path,
     })
       .then(() => {
-        setSettings(newSettings);
+        setSettings((prev) => {
+          return {
+            ...prev,
+            game_path: path,
+          };
+        });
       })
       .catch((e) => {
         console.error(e);
@@ -89,32 +85,12 @@ export function SettingsTab({ onReady }: { onReady: () => void }) {
       <PathInput
         path={settings.game_path}
         label="Path to Team Fortress 2 directory"
-        placeholder={defaultSettings.game_path}
-        onClick={async () => setDirectory("game", (await pickDirectory()) ?? "")}
-        onUndo={() => {
-          setDirectory("game", defaultSettings.game_path);
-        }}
+        onClick={async () => setDirectory((await pickDirectory()) ?? "")}
       />
-      <div className="flex justify-center items-end w-full mb-5">
-        <UndoInput
+      <div className="mb-5">
+        <TextInput
           value={settings.username}
-          placeholder={defaultSettings.username}
           label="Steam account display name"
-          onUndo={() => {
-            invoke("set_settings", {
-              settings: {
-                username: defaultSettings.username,
-              },
-            })
-              .then(() => {
-                setSettings((prev) => {
-                  return { ...prev, username: defaultSettings.username };
-                });
-              })
-              .catch((e) => {
-                console.error(e);
-              });
-          }}
           onChange={(e) => {
             const input = e.target as HTMLInputElement;
             const value = input.value;
@@ -124,50 +100,30 @@ export function SettingsTab({ onReady }: { onReady: () => void }) {
             });
           }}
           onBlur={() => {
-            invoke("set_settings", {
-              settings: {
-                username: settings.username,
-              },
+            invoke("set_username", {
+              username: settings.username,
             }).catch((e) => {
               console.error(e);
             });
           }}
         />
       </div>
-      <div className="flex justify-center items-end w-full mb-5">
-        <UndoInput
+      <div className="mb-5">
+        <TextInput
           value={settings.websocket_address}
-          placeholder={defaultSettings.websocket_address}
           label="Intiface Central websocket address"
-          onUndo={() => {
-            invoke("set_settings", {
-              settings: {
-                websocket_address: defaultSettings.websocket_address,
-              },
-            })
-              .then(() => {
-                setSettings((prev) => {
-                  return { ...prev, websocket_address: defaultSettings.websocket_address };
-                });
-              })
-              .catch((e) => {
-                console.error(e);
-              });
-          }}
           onChange={(e) => {
-            const filtered = e.target.value.replace(/[^0-9.:a-zA-Z]/g, "");
+            const filtered = e.target.value.replace(/[^0-9.:a-zA-Z/]/g, "");
 
             setSettings((prev) => ({ ...prev, websocket_address: filtered }));
             setWsError(false);
           }}
           onBlur={(e) => {
             let addr = e.target.value;
-            if (/^(localhost|(\d{1,3}\.){3}\d{1,3}):\d{1,5}$/.test(addr)) {
+            if (/^ws:\/\/(localhost|(\d{1,3}\.){3}\d{1,3}):\d{1,5}$/.test(addr)) {
               setSettings((prev) => ({ ...prev, websocket_address: addr }));
-              invoke("set_settings", {
-                settings: {
-                  websocket_address: addr,
-                },
+              invoke("set_websocket_address", {
+                websocketAddress: addr,
               }).catch((e) => {
                 console.error(e);
               });
@@ -192,58 +148,18 @@ export function SettingsTab({ onReady }: { onReady: () => void }) {
 function PathInput({
   path,
   label,
-  placeholder,
   onClick,
-  onUndo,
 }: {
   path: string;
   label: string;
-  placeholder: string;
   onClick: (...args: any[]) => any;
-  onUndo: (...args: any[]) => any;
 }) {
   return (
     <div className="flex justify-center items-end w-full mb-5">
-      <UndoInput readOnly value={path} label={label} placeholder={placeholder} onUndo={onUndo} />
+      <TextInput type="text" value={path} readOnly className="flex-1" label={label} />
       <Button className="ml-5" onClick={onClick}>
         Open...
       </Button>
     </div>
-  );
-}
-
-function UndoInput({
-  value,
-  placeholder,
-  onUndo,
-  ...rest
-}: {
-  value: string;
-  placeholder: string;
-  onUndo: (...args: any[]) => any;
-} & TextInputProps) {
-  return (
-    <TextInput
-      type="text"
-      value={value}
-      placeholder={placeholder}
-      className="flex-1"
-      rightSection={
-        value != placeholder && (
-          <Tooltip
-            label="Reset"
-            position="top"
-            transitionProps={{ transition: "fade", duration: 300 }}
-            openDelay={500}
-            color="gray"
-          >
-            <ActionIcon size={32} variant="filled" color="red" onClick={onUndo}>
-              <Undo2 size={20} />
-            </ActionIcon>
-          </Tooltip>
-        )
-      }
-      {...rest}
-    />
   );
 }
