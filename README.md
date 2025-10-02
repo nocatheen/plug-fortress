@@ -1,7 +1,17 @@
-# Tauri + React + Typescript
+# Plug Fortress
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Disclamer - this is VERY alpha, only basic functions are working (and still not always as intended).
 
-## Recommended IDE Setup
+## Instructions
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+1. Download and install Intiface Central and Plug Fortress;
+2. Start Intiface server;
+3. Launch Plug Fortress, use "Toy" tab to scan for and enable your device; don't forget to adjust max power settings here;
+4. Enable what events to listen for in "Features" tab;
+5. Switch the giant "ENABLE SERVICE" switch to enable the service;
+6. have fun i guess.
+
+## TODO
+
+- Complete README.md lol
+- Rewrite everything from scratch because it this thing sucks rn

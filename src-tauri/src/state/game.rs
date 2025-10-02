@@ -87,8 +87,11 @@ impl GameState {
                 value.map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false)
             }
 
-            fn parse_u8(value: Option<Value>) -> u8 {
-                value.map(|v| v.as_u64()).unwrap_or(Some(0)).unwrap_or(0) as u8
+            fn parse_u8(value: Option<Value>, default: u64) -> u8 {
+                value
+                    .map(|v| v.as_u64())
+                    .unwrap_or(Some(default))
+                    .unwrap_or(default) as u8
             }
 
             self.kills_enabled = parse_bool(store.get("game-feature-kills"));
@@ -96,13 +99,14 @@ impl GameState {
             self.deaths_enabled = parse_bool(store.get("game-feature-deaths"));
             self.deathstreaks_enabled = parse_bool(store.get("game-feature-deathstreaks"));
 
-            self.options.first_kill_power = Some(parse_u8(store.get("first-kill-power")));
-            self.options.max_killstreak = Some(parse_u8(store.get("max-killstreak")));
-            self.options.killstreak_continuous = Some(parse_u8(store.get("killstreak-continuous")));
-            self.options.first_death_power = Some(parse_u8(store.get("first-death-power")));
-            self.options.max_deathstreak = Some(parse_u8(store.get("max-deathstreak")));
+            self.options.first_kill_power = Some(parse_u8(store.get("first-kill-power"), 40));
+            self.options.max_killstreak = Some(parse_u8(store.get("max-killstreak"), 5));
+            self.options.killstreak_continuous =
+                Some(parse_u8(store.get("killstreak-continuous"), 30));
+            self.options.first_death_power = Some(parse_u8(store.get("first-death-power"), 40));
+            self.options.max_deathstreak = Some(parse_u8(store.get("max-deathstreak"), 5));
             self.options.deathstreak_continuous =
-                Some(parse_u8(store.get("deathstreak-continuous")));
+                Some(parse_u8(store.get("deathstreak-continuous"), 30));
 
             app_handle
                 .emit("game-state-update", self.display())

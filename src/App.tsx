@@ -11,8 +11,8 @@ import { listen } from "@tauri-apps/api/event";
 import { notifications } from "@mantine/notifications";
 
 function App() {
-  const [loadingTab, setLoadingTab] = useState(0);
-  const [activeTab, setActiveTab] = useState(0);
+  const [loadingTab, setLoadingTab] = useState(4);
+  const [activeTab, setActiveTab] = useState(4);
 
   const links = [
     { icon: Gamepad, label: "Features" },
