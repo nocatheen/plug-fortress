@@ -3511,6 +3511,7 @@ dependencies = [
  "buttplug",
  "futures",
  "hex",
+ "num",
  "regex",
  "serde",
  "serde_json",

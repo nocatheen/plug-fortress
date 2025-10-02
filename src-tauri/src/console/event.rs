@@ -1,4 +1,5 @@
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 
 static KILL_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -36,6 +37,8 @@ static PLAYER_CONNECT_RE: LazyLock<Regex> = LazyLock::new(|| {
     .unwrap()
 });
 
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(untagged)]
 pub enum ConsoleEvent {
     Kill {
         killer: String,

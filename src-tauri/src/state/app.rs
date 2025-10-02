@@ -1,4 +1,6 @@
-use tauri::{AppHandle, Manager};
+use std::sync::Arc;
+
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex;
 
 use crate::{
@@ -11,16 +13,16 @@ use crate::{
 };
 
 pub struct AppState {
-    pub game: Mutex<GameState>,
-    pub plug: Mutex<PlugState>,
+    pub game: Arc<Mutex<GameState>>,
+    pub plug: Arc<Mutex<PlugState>>,
     pub parser: Mutex<ParserManager>,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self {
-            game: Mutex::new(GameState::new(find_game_path(), find_user_name())),
-            plug: Mutex::new(PlugState::new("ws://localhost:12345".to_string())),
+            game: Mutex::new(GameState::new(find_game_path(), find_user_name())).into(),
+            plug: Mutex::new(PlugState::new("ws://localhost:12345".to_string())).into(),
             parser: Mutex::new(ParserManager::new()),
         }
     }
@@ -36,11 +38,23 @@ impl AppState {
     }
 
     pub async fn start(&self, app_handle: AppHandle) {
-        self.parser.lock().await.start(app_handle).await;
+        self.parser.lock().await.start(app_handle.clone()).await;
+        let mut game = self.game.lock().await;
+        game.current_deathstreak = 0;
+        game.current_killstreak = 0;
+        game.start();
+        app_handle
+            .emit("game-state-update", game.display())
+            .unwrap();
     }
 
-    pub async fn stop(&self) {
+    pub async fn stop(&self, app_handle: AppHandle) {
         self.parser.lock().await.stop().await;
+        let mut game = self.game.lock().await;
+        game.stop();
+        app_handle
+            .emit("game-state-update", game.display())
+            .unwrap();
     }
 }
 
@@ -54,5 +68,8 @@ pub async fn start_service(app_handle: AppHandle) {
 
 #[tauri::command]
 pub async fn stop_service(app_handle: AppHandle) {
-    app_handle.state::<AppState>().stop().await;
+    app_handle
+        .state::<AppState>()
+        .stop(app_handle.clone())
+        .await;
 }

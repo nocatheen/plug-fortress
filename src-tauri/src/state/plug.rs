@@ -1,8 +1,11 @@
+use std::collections::HashMap;
+
 use buttplug::{
-    client::{ButtplugClient, ButtplugClientError, ButtplugClientEvent},
+    client::{ButtplugClient, ButtplugClientError, ButtplugClientEvent, ScalarValueCommand},
     core::connector::new_json_ws_client_connector,
 };
 use futures::StreamExt;
+use num::clamp;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -101,6 +104,7 @@ impl PlugState {
         if let Err(e) = self.connect(app_local).await {
             eprintln!("{e}");
         }
+        self.stop_vibration();
     }
 
     fn display_device(&self, id: DeviceID) -> Option<DeviceDisplay> {
@@ -184,12 +188,62 @@ impl PlugState {
         return Err("This device does not exist".to_string());
     }
 
-    pub fn toggle_device(&mut self, did: DeviceID, enable: bool) -> Result<(), String> {
+    pub async fn toggle_device(&mut self, did: DeviceID, enable: bool) -> Result<(), String> {
         if let Some(dev) = self.device_manager.devices.get_mut(&did) {
             dev.enabled = enable;
+            self.update_vibration().await;
             return Ok(());
         }
         return Err("This device does not exist".to_string());
+    }
+
+    pub fn stop_vibration(&mut self) {
+        for (_, device) in &mut self.device_manager.devices {
+            for (_, feature) in &mut device.features {
+                feature.current_power = 0.0;
+            }
+        }
+    }
+
+    pub async fn vibrate_add(&mut self, power: f64) {
+        for (_, device) in &mut self.device_manager.devices {
+            for (_, feature) in &mut device.features {
+                feature.current_power +=
+                    power * (feature.max_step as f64 / feature.step_count as f64) as f64;
+                feature.current_power = clamp(feature.current_power, 0.0, 1.0);
+            }
+        }
+        self.update_vibration().await;
+    }
+    pub async fn vibrate_remove(&mut self, power: f64) {
+        for (_, device) in &mut self.device_manager.devices {
+            for (_, feature) in &mut device.features {
+                feature.current_power -=
+                    power * (feature.max_step as f64 / feature.step_count as f64) as f64;
+                feature.current_power = clamp(feature.current_power, 0.0, 1.0);
+            }
+        }
+        self.update_vibration().await;
+    }
+
+    async fn update_vibration(&self) {
+        for device in &self.client.devices() {
+            let _ = device.stop().await.inspect_err(|e| println!("{e}"));
+            let dev = self
+                .device_manager
+                .get(DeviceID::from_device(&device))
+                .unwrap();
+            if dev.enabled {
+                let mut vibvec = HashMap::<u32, f64>::new();
+                for (_, feature) in &dev.features {
+                    vibvec.insert(feature.index, feature.current_power);
+                }
+                let _ = device
+                    .vibrate(&ScalarValueCommand::ScalarValueMap(vibvec))
+                    .await
+                    .inspect_err(|e| println!("{e}"));
+            }
+        }
     }
 }
 
@@ -243,7 +297,7 @@ pub async fn toggle_device(
 ) -> Result<(), String> {
     let state = app_handle.state::<AppState>();
     let mut state = state.plug.lock().await;
-    let res = state.toggle_device(device, enable);
+    let res = state.toggle_device(device, enable).await;
     app_handle.emit("bp-state-update", state.display()).unwrap();
     res
 }
@@ -262,20 +316,78 @@ pub async fn set_max_step(
     res
 }
 
-// for device in &state.client.devices() {
-//     if d.id == device.index() {
+// pub async fn vibrate_once(&self, power: f64) {
+//     // async fn vibrate_fade_out(
+//     //     device: std::sync::Arc<ButtplugClientDevice>,
+//     //     vibrator_values: Vec<f64>,
+//     // ) -> Result<(), ButtplugClientError> {
+//     //     let steps = 10;
+//     //     let delay = Duration::from_millis(100);
+
+//     //     for i in (0..steps).rev() {
+//     //         let factor = i as f64 / steps as f64;
+//     //         let values: Vec<f64> = vibrator_values.iter().map(|v| v * factor).collect();
+//     //         device
+//     //             .vibrate(&ScalarValueCommand::ScalarValueVec(values))
+//     //             .await?;
+//     //         tokio::time::sleep(delay).await;
+//     //     }
+
+//     //     device.stop().await?;
+//     //     Ok(())
+//     // }
+
+//     for device in self.client.devices() {
+//         let did = DeviceID::from_device(&device);
+//         if !self.device_manager.get(did).unwrap().enabled {
+//             continue;
+//         }
+
+//         let dev = self.device_manager.get(did).unwrap();
 //         let mut vibrator_values = Vec::<f64>::new();
-//         for feat in &d.features {
-//             vibrator_values.push(feat.max_step as f64 / feat.step_count as f64);
+//         if let Some(attrs) = device.message_attributes().scalar_cmd() {
+//             for attr in attrs {
+//                 let feat = dev.features.get(&FeatureID::from_feature(attr)).unwrap();
+//                 let max_power = feat.max_step as f64 / feat.step_count as f64;
+//                 feat.current_power += max_power * power;
+//                 vibrator_values
+//                     .push(clamp_max(feat.current_power + max_power * power, max_power));
+//             }
 //         }
-//         if active {
-//             device
-//                 .vibrate(&ScalarValueCommand::ScalarValueVec(vibrator_values))
-//                 .await
-//                 .map_err(|e| e.to_string())?;
-//         } else {
-//             device.stop().await.map_err(|e| e.to_string())?;
+
+//         tauri::async_runtime::spawn(vibrate_fade_out(device, vibrator_values));
+//     }
+// }
+
+// pub async fn vibrate_start(&self, power: f64) {
+//     for device in self.client.devices() {
+//         let did = DeviceID::from_device(&device);
+//         if !self.device_manager.get(did).unwrap().enabled {
+//             continue;
 //         }
-//         return Ok(());
+
+//         let dev = self.device_manager.get(did).unwrap();
+//         let mut vibrator_values = Vec::<f64>::new();
+//         if let Some(attrs) = device.message_attributes().scalar_cmd() {
+//             for attr in attrs {
+//                 let feat = dev.features.get(&FeatureID::from_feature(attr)).unwrap();
+//                 let max_power = feat.max_step as f64 / feat.step_count as f64;
+//                 vibrator_values.push(max_power * power);
+//             }
+//         }
+
+//         tauri::async_runtime::spawn(
+//             device.vibrate(&ScalarValueCommand::ScalarValueVec(vibrator_values)),
+//         );
+//     }
+// }
+// pub async fn vibrate_stop(&self) {
+//     for device in self.client.devices() {
+//         let did = DeviceID::from_device(&device);
+//         if !self.device_manager.get(did).unwrap().enabled {
+//             continue;
+//         }
+
+//         tauri::async_runtime::spawn(device.stop());
 //     }
 // }

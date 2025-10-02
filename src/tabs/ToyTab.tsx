@@ -73,7 +73,7 @@ export function ToyTab({ onReady }: { onReady: () => void }) {
           value={currentSearch}
           onChange={setCurrentSearch}
         />
-        <Tooltip label={plugState.scanning ? "Stop scanning" : "Start scanning"}>
+        <Tooltip label={plugState.scanning ? "Stop scanning" : "Start scanning"} color="gray">
           <ActionIcon
             variant={plugState.scanning ? "light" : "default"}
             size={55}

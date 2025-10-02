@@ -3,7 +3,7 @@ pub mod state;
 
 use tauri::Manager;
 
-use crate::state::{app::AppState, plug::*, *};
+use crate::state::{app::*, game::*, plug::*, *};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,6 +14,7 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<AppState>();
                 state.plug.lock().await.init(&app_handle).await;
+                state.game.lock().await.init(&app_handle).await;
             });
 
             Ok(())
@@ -29,6 +30,10 @@ pub fn run() {
             stop_scanning,
             toggle_device,
             set_max_step,
+            start_service,
+            stop_service,
+            set_game_options,
+            toggle_game_feature,
         ])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

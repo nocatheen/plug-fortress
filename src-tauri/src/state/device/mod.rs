@@ -9,17 +9,21 @@ use crate::state::device::hash::{DeviceID, FeatureID};
 pub mod hash;
 
 pub struct Feature {
+    pub index: u32,
     pub name: String,
     pub step_count: u32,
     pub max_step: u32,
+    pub current_power: f64,
 }
 
 impl Feature {
     pub fn from_raw(feature: &ClientGenericDeviceMessageAttributesV3) -> Self {
         Self {
+            index: *feature.index(),
             name: feature.actuator_type().to_string(),
             step_count: *feature.step_count(),
             max_step: *feature.step_count(),
+            current_power: 0.0,
         }
     }
 }

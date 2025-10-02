@@ -4,10 +4,23 @@ import { TextInput, Button, Blockquote, Code } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { Info } from "lucide-react";
 
+export type GameOptions = {
+  first_kill_power: number;
+  max_killstreak: number;
+  killstreak_continuous: number;
+  first_death_power: number;
+  max_deathstreak: number;
+  deathstreak_continuous: number;
+};
 export type GameState = {
   game_path: string;
   username: string;
   service_enabled: boolean;
+  options: GameOptions;
+  kills_enabled: boolean;
+  killstreaks_enabled: boolean;
+  deaths_enabled: boolean;
+  deathstreaks_enabled: boolean;
 };
 export type PlugState = {
   websocket_address: string;
