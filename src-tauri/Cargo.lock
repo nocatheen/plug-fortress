@@ -3510,6 +3510,7 @@ version = "0.1.0"
 dependencies = [
  "buttplug",
  "futures",
+ "hex",
  "regex",
  "serde",
  "serde_json",

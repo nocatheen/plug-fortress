@@ -16,15 +16,15 @@ export type PlugState = {
   connected: boolean;
 };
 export type Device = {
-  id: number[];
+  id: string;
   name: string;
   enabled: boolean;
   features: Feature[];
 };
 export type Feature = {
-  id: number[];
+  id: string;
   name: string;
-  step_count: boolean;
+  step_count: number;
   max_step: number;
 };
 

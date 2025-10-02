@@ -1,6 +1,7 @@
 import { Slider, Switch } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
-import React, { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { ToggableCard } from "../components/ToggableCard";
 
 export function FeaturesTab({ onReady }: { onReady: () => void }) {
   const [isPending, startTransition] = useTransition();
@@ -36,7 +37,7 @@ export function FeaturesTab({ onReady }: { onReady: () => void }) {
         <span className="text-2xl font-black">Enable service</span>
       </div>
       <div className="flex flex-col gap-5">
-        <Feature
+        <ToggableCard
           enabled={kills}
           onSwitch={() => setKills((prev) => !prev)}
           name="Kills"
@@ -60,7 +61,7 @@ export function FeaturesTab({ onReady }: { onReady: () => void }) {
             },
           ]}
         />
-        <Feature
+        <ToggableCard
           enabled={killstreaks}
           onSwitch={() => setKillstreaks((prev) => !prev)}
           name="Killstreaks"
@@ -99,7 +100,7 @@ export function FeaturesTab({ onReady }: { onReady: () => void }) {
             },
           ]}
         />
-        <Feature
+        <ToggableCard
           enabled={deaths}
           onSwitch={() => setDeaths((prev) => !prev)}
           name="Deaths"
@@ -123,7 +124,7 @@ export function FeaturesTab({ onReady }: { onReady: () => void }) {
             },
           ]}
         />
-        <Feature
+        <ToggableCard
           enabled={deathstreaks}
           onSwitch={() => setDeathstreaks((prev) => !prev)}
           name="Deathstreaks"
@@ -163,55 +164,6 @@ export function FeaturesTab({ onReady }: { onReady: () => void }) {
           ]}
         />
       </div>
-    </div>
-  );
-}
-
-type Option = {
-  label?: string;
-  description?: string;
-  content: React.ReactNode;
-};
-
-function Feature({
-  name,
-  description,
-  options,
-  enabled,
-  onSwitch,
-}: {
-  name: string;
-  description: string;
-  options: Option[];
-  enabled: boolean;
-  onSwitch: () => void;
-}) {
-  return (
-    <div className="w-full p-3 ring-1 ring-neutral-700 rounded-lg">
-      <div className="flex items-end gap-2">
-        <Switch size="md" checked={enabled} onChange={onSwitch}></Switch>
-        <div className={`font-bold text-xl ${enabled ? "" : "text-neutral-500"}`}>{name}</div>
-      </div>
-      <div className={`${enabled ? "text-neutral-400" : "text-neutral-600"} ml-14 text-sm`}>
-        {description}
-      </div>
-      {enabled && (
-        <div className="mt-3">
-          {options.map((option, i) => (
-            <div key={i}>
-              {option.label ? (
-                <div className="mt-2 ring-1 ring-neutral-700 rounded-lg px-4 pt-3 pb-7" key={i}>
-                  <div className="font-bold">{option.label}</div>
-                  <div className="text-neutral-400 mb-1 text-sm">{option.description}</div>
-                  {option.content}
-                </div>
-              ) : (
-                <div className="mt-2">{option.content}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

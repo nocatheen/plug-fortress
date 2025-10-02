@@ -80,7 +80,7 @@ impl PlugState {
                         app.emit("bp-state-update", state.display()).unwrap();
                     }
                     ButtplugClientEvent::ScanningFinished => {
-                        println!("Stopped scanning for devices.");
+                        println!("Scanning session has finished.");
                         state.device_manager.clear();
                         for dev in state.client.devices() {
                             state.device_manager.insert(&dev);
@@ -164,19 +164,32 @@ impl PlugState {
             .await
             .map_err(|e| e.to_string())?;
         self.scanning = false;
-
+        println!("Stopped scanning for devices.");
         Ok(())
     }
 
-    pub fn set_max_step(&mut self, did: DeviceID, fid: FeatureID, value: u32) -> Result<(), &str> {
+    pub fn set_max_step(
+        &mut self,
+        did: DeviceID,
+        fid: FeatureID,
+        value: u32,
+    ) -> Result<(), String> {
         if let Some(dev) = self.device_manager.devices.get_mut(&did) {
             if let Some(feat) = dev.features.get_mut(&fid) {
                 feat.max_step = value;
                 return Ok(());
             }
-            return Err("This feature does not exist");
+            return Err("This feature does not exist".to_string());
         }
-        return Err("This device does not exist");
+        return Err("This device does not exist".to_string());
+    }
+
+    pub fn toggle_device(&mut self, did: DeviceID, enable: bool) -> Result<(), String> {
+        if let Some(dev) = self.device_manager.devices.get_mut(&did) {
+            dev.enabled = enable;
+            return Ok(());
+        }
+        return Err("This device does not exist".to_string());
     }
 }
 
@@ -204,6 +217,50 @@ pub async fn connect_to_server(app_handle: AppHandle) {
     }
 }
 
+#[tauri::command]
+pub async fn start_scanning(app_handle: AppHandle) -> Result<(), String> {
+    let state = app_handle.state::<AppState>();
+    let mut state = state.plug.lock().await;
+    let res = state.start_scanning().await;
+    app_handle.emit("bp-state-update", state.display()).unwrap();
+    res
+}
+
+#[tauri::command]
+pub async fn stop_scanning(app_handle: AppHandle) -> Result<(), String> {
+    let state = app_handle.state::<AppState>();
+    let mut state = state.plug.lock().await;
+    let res = state.stop_scanning().await;
+    app_handle.emit("bp-state-update", state.display()).unwrap();
+    res
+}
+
+#[tauri::command]
+pub async fn toggle_device(
+    app_handle: AppHandle,
+    device: DeviceID,
+    enable: bool,
+) -> Result<(), String> {
+    let state = app_handle.state::<AppState>();
+    let mut state = state.plug.lock().await;
+    let res = state.toggle_device(device, enable);
+    app_handle.emit("bp-state-update", state.display()).unwrap();
+    res
+}
+
+#[tauri::command]
+pub async fn set_max_step(
+    app_handle: AppHandle,
+    device: DeviceID,
+    feature: FeatureID,
+    value: u32,
+) -> Result<(), String> {
+    let state = app_handle.state::<AppState>();
+    let mut state = state.plug.lock().await;
+    let res = state.set_max_step(device, feature, value);
+    app_handle.emit("bp-state-update", state.display()).unwrap();
+    res
+}
 
 // for device in &state.client.devices() {
 //     if d.id == device.index() {

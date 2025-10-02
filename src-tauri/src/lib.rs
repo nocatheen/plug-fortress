@@ -3,7 +3,7 @@ pub mod state;
 
 use tauri::Manager;
 
-use crate::state::{app::AppState, plug::connect_to_server, *};
+use crate::state::{app::AppState, plug::*, *};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -24,7 +24,11 @@ pub fn run() {
             set_game_path,
             set_username,
             set_websocket_address,
-            connect_to_server
+            connect_to_server,
+            start_scanning,
+            stop_scanning,
+            toggle_device,
+            set_max_step,
         ])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
