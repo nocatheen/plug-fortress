@@ -8,15 +8,17 @@ use crate::state::{app::*, game::*, plug::*, *};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(AppState::new())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .setup(|app| {
+            let app_handle = app.app_handle().to_owned();
+            app.manage(AppState::new(app_handle));
+            
             let app_handle = app.app_handle().to_owned();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<AppState>();
                 state.plug.lock().await.init(&app_handle).await;
                 state.game.lock().await.init(&app_handle).await;
             });
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

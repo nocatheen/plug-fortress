@@ -7,7 +7,9 @@ use buttplug::{
 use futures::StreamExt;
 use num::clamp;
 use serde::Serialize;
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_store::StoreExt;
 
 use crate::state::{
     app::AppState,
@@ -66,6 +68,7 @@ impl PlugState {
             let mut events = binding.plug.lock().await.client.event_stream();
             while let Some(event) = events.next().await {
                 let mut state = binding.plug.lock().await;
+                let app = app.clone();
                 match event {
                     ButtplugClientEvent::DeviceAdded(device) => {
                         println!("Device added: {}", device.name());
@@ -84,9 +87,8 @@ impl PlugState {
                     }
                     ButtplugClientEvent::ScanningFinished => {
                         println!("Scanning session has finished.");
-                        state.device_manager.clear();
-                        for dev in state.client.devices() {
-                            state.device_manager.insert(&dev);
+                        if let Err(e) = state.sync_device_manager(app.clone()) {
+                            eprintln!("{e}");
                         }
                         state.scanning = false;
                         app.emit("bp-state-update", state.display()).unwrap();
@@ -105,6 +107,26 @@ impl PlugState {
             eprintln!("{e}");
         }
         self.stop_vibration();
+    }
+
+    pub fn sync_device_manager(&mut self, app_handle: AppHandle) -> Result<(), String> {
+        self.device_manager.clear();
+        for dev in self.client.devices() {
+            self.device_manager.insert(&dev);
+        }
+        let store = app_handle.store("store.json").map_err(|e| e.to_string())?;
+        for (did, device) in &mut self.device_manager.devices {
+            for (fid, feature) in &mut device.features {
+                if let Some(Value::String(value)) =
+                    store.get(format!("max-step-{}-{}", did.to_str(), fid.to_str()))
+                {
+                    if let Ok(value) = value.parse() {
+                        feature.max_step = value;
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     fn display_device(&self, id: DeviceID) -> Option<DeviceDisplay> {
@@ -144,9 +166,8 @@ impl PlugState {
         let connector = new_json_ws_client_connector(&self.websocket_address);
         self.client.connect(connector).await?;
         println!("Connected to Buttplug server.");
-        self.device_manager.clear();
-        for dev in self.client.devices() {
-            self.device_manager.insert(&dev);
+        if let Err(e) = self.sync_device_manager(app_handle.clone()) {
+            eprintln!("{e}");
         }
         app_handle.emit("bp-state-update", self.display()).unwrap();
         Ok(())
@@ -311,83 +332,11 @@ pub async fn set_max_step(
 ) -> Result<(), String> {
     let state = app_handle.state::<AppState>();
     let mut state = state.plug.lock().await;
+
+    let store = app_handle.store("store.json").map_err(|e| e.to_string())?;
+    store.set(format!("max-step-{}-{}", device.to_str(), feature.to_str()), value);
+
     let res = state.set_max_step(device, feature, value);
     app_handle.emit("bp-state-update", state.display()).unwrap();
     res
 }
-
-// pub async fn vibrate_once(&self, power: f64) {
-//     // async fn vibrate_fade_out(
-//     //     device: std::sync::Arc<ButtplugClientDevice>,
-//     //     vibrator_values: Vec<f64>,
-//     // ) -> Result<(), ButtplugClientError> {
-//     //     let steps = 10;
-//     //     let delay = Duration::from_millis(100);
-
-//     //     for i in (0..steps).rev() {
-//     //         let factor = i as f64 / steps as f64;
-//     //         let values: Vec<f64> = vibrator_values.iter().map(|v| v * factor).collect();
-//     //         device
-//     //             .vibrate(&ScalarValueCommand::ScalarValueVec(values))
-//     //             .await?;
-//     //         tokio::time::sleep(delay).await;
-//     //     }
-
-//     //     device.stop().await?;
-//     //     Ok(())
-//     // }
-
-//     for device in self.client.devices() {
-//         let did = DeviceID::from_device(&device);
-//         if !self.device_manager.get(did).unwrap().enabled {
-//             continue;
-//         }
-
-//         let dev = self.device_manager.get(did).unwrap();
-//         let mut vibrator_values = Vec::<f64>::new();
-//         if let Some(attrs) = device.message_attributes().scalar_cmd() {
-//             for attr in attrs {
-//                 let feat = dev.features.get(&FeatureID::from_feature(attr)).unwrap();
-//                 let max_power = feat.max_step as f64 / feat.step_count as f64;
-//                 feat.current_power += max_power * power;
-//                 vibrator_values
-//                     .push(clamp_max(feat.current_power + max_power * power, max_power));
-//             }
-//         }
-
-//         tauri::async_runtime::spawn(vibrate_fade_out(device, vibrator_values));
-//     }
-// }
-
-// pub async fn vibrate_start(&self, power: f64) {
-//     for device in self.client.devices() {
-//         let did = DeviceID::from_device(&device);
-//         if !self.device_manager.get(did).unwrap().enabled {
-//             continue;
-//         }
-
-//         let dev = self.device_manager.get(did).unwrap();
-//         let mut vibrator_values = Vec::<f64>::new();
-//         if let Some(attrs) = device.message_attributes().scalar_cmd() {
-//             for attr in attrs {
-//                 let feat = dev.features.get(&FeatureID::from_feature(attr)).unwrap();
-//                 let max_power = feat.max_step as f64 / feat.step_count as f64;
-//                 vibrator_values.push(max_power * power);
-//             }
-//         }
-
-//         tauri::async_runtime::spawn(
-//             device.vibrate(&ScalarValueCommand::ScalarValueVec(vibrator_values)),
-//         );
-//     }
-// }
-// pub async fn vibrate_stop(&self) {
-//     for device in self.client.devices() {
-//         let did = DeviceID::from_device(&device);
-//         if !self.device_manager.get(did).unwrap().enabled {
-//             continue;
-//         }
-
-//         tauri::async_runtime::spawn(device.stop());
-//     }
-// }

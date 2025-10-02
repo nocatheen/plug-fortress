@@ -12,7 +12,7 @@ impl Serialize for DeviceID {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&hex::encode(self.0))
+        serializer.serialize_str(&self.to_str())
     }
 }
 
@@ -49,6 +49,10 @@ impl DeviceID {
         arr.copy_from_slice(&hash);
         DeviceID(arr)
     }
+
+    pub fn to_str(&self) -> String {
+        hex::encode(self.0)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -59,7 +63,7 @@ impl Serialize for FeatureID {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&hex::encode(self.0))
+        serializer.serialize_str(&self.to_str())
     }
 }
 
@@ -92,5 +96,9 @@ impl FeatureID {
         let mut arr = [0u8; 32];
         arr.copy_from_slice(&hash);
         FeatureID(arr)
+    }
+
+    pub fn to_str(&self) -> String {
+        hex::encode(self.0)
     }
 }

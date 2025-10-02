@@ -1,12 +1,14 @@
-use std::sync::Arc;
+use std::{path::PathBuf, str::FromStr, sync::Arc};
 
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
 use crate::{
     console::ParserManager,
     state::{
-        files::{find_game_path, find_user_name},
+        files::{find_game_path, find_user_name, path_to_string},
         game::{GameDisplay, GameState},
         plug::{PlugDisplay, PlugState},
     },
@@ -19,10 +21,27 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(app_handle: AppHandle) -> Self {
+        let store = app_handle.store("store.json").unwrap();
+        let mut path = find_game_path();
+        let mut username = find_user_name();
+        let mut ws = "ws://localhost:12345".to_owned();
+        if let Some(Value::String(p)) = store.get("game-path") {
+            let Ok(p) = PathBuf::from_str(&p);
+            path = p;
+        }
+        store.set("game-path", path_to_string(&path));
+        if let Some(Value::String(u)) = store.get("username") {
+            username = u;
+        }
+        store.set("username", username.clone());
+        if let Some(Value::String(w)) = store.get("websocket-address") {
+            ws = w;
+        }
+        store.set("websocket-address", ws.clone());
         Self {
-            game: Mutex::new(GameState::new(find_game_path(), find_user_name())).into(),
-            plug: Mutex::new(PlugState::new("ws://localhost:12345".to_string())).into(),
+            game: Mutex::new(GameState::new(path, username)).into(),
+            plug: Mutex::new(PlugState::new(ws)).into(),
             parser: Mutex::new(ParserManager::new()),
         }
     }

@@ -31,4 +31,5 @@ tokio = "1.47.1"
 sha2 = "0.10.9"
 hex = "0.4.3"
 num = "0.4.3"
+tauri-plugin-store = "2"
 

@@ -2,7 +2,9 @@ use std::{path::PathBuf, time::Duration};
 
 use num::clamp;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager};
+use tauri_plugin_store::StoreExt;
 
 use crate::{
     console::ConsoleEvent,
@@ -79,6 +81,34 @@ impl GameState {
 
     pub async fn init(&mut self, app: &AppHandle) {
         let app_handle = app.clone();
+
+        if let Ok(store) = app_handle.store("store.json") {
+            fn parse_bool(value: Option<Value>) -> bool {
+                value.map(|v| v.as_bool().unwrap_or(false)).unwrap_or(false)
+            }
+
+            fn parse_u8(value: Option<Value>) -> u8 {
+                value.map(|v| v.as_u64()).unwrap_or(Some(0)).unwrap_or(0) as u8
+            }
+
+            self.kills_enabled = parse_bool(store.get("game-feature-kills"));
+            self.killstreaks_enabled = parse_bool(store.get("game-feature-killstreaks"));
+            self.deaths_enabled = parse_bool(store.get("game-feature-deaths"));
+            self.deathstreaks_enabled = parse_bool(store.get("game-feature-deathstreaks"));
+
+            self.options.first_kill_power = Some(parse_u8(store.get("first-kill-power")));
+            self.options.max_killstreak = Some(parse_u8(store.get("max-killstreak")));
+            self.options.killstreak_continuous = Some(parse_u8(store.get("killstreak-continuous")));
+            self.options.first_death_power = Some(parse_u8(store.get("first-death-power")));
+            self.options.max_deathstreak = Some(parse_u8(store.get("max-deathstreak")));
+            self.options.deathstreak_continuous =
+                Some(parse_u8(store.get("deathstreak-continuous")));
+
+            app_handle
+                .emit("game-state-update", self.display())
+                .unwrap();
+        }
+
         app.listen("kill", move |event| {
             let app_handle = app_handle.clone();
             tauri::async_runtime::spawn(async move {
@@ -172,7 +202,28 @@ impl GameState {
         self.service_enabled = false;
     }
 
-    pub fn set_options(&mut self, options: Options) {
+    pub fn set_options(&mut self, options: Options, app_handle: AppHandle) {
+        if let Ok(store) = app_handle.store("store.json") {
+            if options.first_kill_power.is_some() {
+                store.set("first-kill-power", options.first_kill_power);
+            }
+            if options.max_killstreak.is_some() {
+                store.set("max-killstreak", options.max_killstreak);
+            }
+            if options.killstreak_continuous.is_some() {
+                store.set("killstreak-continuous", options.killstreak_continuous);
+            }
+            if options.first_death_power.is_some() {
+                store.set("first-death-power", options.first_death_power);
+            }
+            if options.max_deathstreak.is_some() {
+                store.set("max-deathstreak", options.max_deathstreak);
+            }
+            if options.deathstreak_continuous.is_some() {
+                store.set("deathstreak-continuous", options.deathstreak_continuous);
+            }
+        }
+
         if options.first_kill_power.is_some() {
             self.options.first_kill_power = options.first_kill_power;
         }
@@ -235,7 +286,7 @@ impl GameState {
 pub async fn set_game_options(app_handle: AppHandle, options: Options) -> Result<(), String> {
     let state = app_handle.state::<AppState>();
     let mut state = state.game.lock().await;
-    state.set_options(options);
+    state.set_options(options, app_handle.clone());
     app_handle
         .emit("game-state-update", state.display())
         .unwrap();
@@ -250,6 +301,10 @@ pub async fn toggle_game_feature(
 ) -> Result<(), String> {
     let state = app_handle.state::<AppState>();
     let mut state = state.game.lock().await;
+
+    let store = app_handle.store("store.json").map_err(|e| e.to_string())?;
+    store.set(format!("game-feature-{}", feature), enabled);
+
     match feature.as_str() {
         "kills" => state.toggle_kills(enabled),
         "killstreaks" => state.toggle_killstreaks(enabled),
