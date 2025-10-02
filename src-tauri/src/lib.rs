@@ -36,6 +36,7 @@ pub fn run() {
             stop_service,
             set_game_options,
             toggle_game_feature,
+            reset_store,
         ])
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

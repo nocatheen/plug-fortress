@@ -92,3 +92,11 @@ pub async fn stop_service(app_handle: AppHandle) {
         .stop(app_handle.clone())
         .await;
 }
+
+#[tauri::command]
+pub async fn reset_store(app_handle: AppHandle) {
+    let store = app_handle.store("store.json").unwrap();
+    store.clear();
+    store.close_resource();
+    app_handle.exit(0);
+}

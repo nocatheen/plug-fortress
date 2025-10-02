@@ -1,6 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { TextInput, Button, Blockquote, Code } from "@mantine/core";
+import { TextInput, Button, Blockquote, Code, Modal } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { Info } from "lucide-react";
 
@@ -90,6 +90,7 @@ export function SettingsTab({ onReady }: { onReady: () => void }) {
   }
 
   const [wsError, setWsError] = useState(false);
+  const [modal, setModal] = useState(false);
 
   if (isPending) return null;
 
@@ -153,6 +154,19 @@ export function SettingsTab({ onReady }: { onReady: () => void }) {
           Team&nbsp;Fortress&nbsp;2 <i>launch options</i>:
           <Code block>-condebug -conclearlog +con_timestamp 1</Code>
         </Blockquote>
+      </div>
+      <Modal opened={modal} onClose={() => setModal(false)} title="Reset all app data">
+        <div className="flex justify-center items-center flex-col mt-3">
+          <span className="text-center text-2xl font-bold mb-10">You sure?</span>
+          <Button color="red" onClick={() => invoke("reset_store")}>
+            Yeah
+          </Button>
+        </div>
+      </Modal>
+      <div className="flex justify-center mt-20">
+        <Button color="red" onClick={() => setModal(true)}>
+          Reset everything (scary!)
+        </Button>
       </div>
     </div>
   );
